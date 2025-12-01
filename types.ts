@@ -11,16 +11,26 @@ export interface UserObject {
   description: string;
 }
 
+export interface CustomFieldConfig {
+  id: string;
+  name: string;
+  type: 'rate' | 'fee'; // 'rate' = metered (per unit), 'fee' = fixed monthly
+  unit?: string; // e.g. 'kWh', 'm3' - only for rates
+  price: number;
+}
+
 export interface TariffRates {
   electricityRate: number; // Price per kWh
   waterRate: number;       // Price per m³
   gasRate: number;         // Price per m³
   waterSubscriptionFee: number; // Fixed monthly fee
   gasDistributionFee: number;   // Fixed monthly fee
+  customFields: CustomFieldConfig[];
   lastReadings: {
     electricity: number;
     water: number;
     gas: number;
+    [key: string]: number; // Allow dynamic keys for custom field IDs
   };
 }
 
@@ -28,6 +38,15 @@ export interface ConsumptionData {
   electricity: number;
   water: number;
   gas: number;
+}
+
+export interface CustomBillRecord {
+  fieldId: string;
+  name: string;
+  type: 'rate' | 'fee';
+  unit?: string;
+  consumption?: number;
+  cost: number;
 }
 
 export interface CostBreakdown {
@@ -41,12 +60,13 @@ export interface CostBreakdown {
 export interface BillRecord {
   id?: string;
   userId?: number;
-  objectId?: number; // New field
+  objectId?: number; 
   date: number; // Unix timestamp (milliseconds)
   electricityConsumption: number;
   waterConsumption: number;
   gasConsumption: number;
   breakdown: CostBreakdown;
+  customRecords?: CustomBillRecord[]; // New field for custom items
   totalCost: number;
 }
 
@@ -58,6 +78,7 @@ export const DEFAULT_TARIFFS: TariffRates = {
   gasRate: 7.95,
   waterSubscriptionFee: 5.38,
   gasDistributionFee: 289.04,
+  customFields: [],
   lastReadings: {
     electricity: 18329,
     water: 1224,

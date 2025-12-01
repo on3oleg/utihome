@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { TariffRates, DEFAULT_TARIFFS, User, UserObject } from '../types';
+import { TariffRates, DEFAULT_TARIFFS, User, UserObject, CustomFieldConfig } from '../types';
 import { getTariffs, saveTariffs } from '../services/db';
-import { Save, Loader2, CheckCircle2, Gauge, Coins } from 'lucide-react';
+import { Save, Loader2, CheckCircle2, Gauge, Coins, Plus, Trash2, Tag, Layers } from 'lucide-react';
 
 interface SettingsProps {
   user: User;
@@ -15,16 +15,23 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
+  // New Field State
+  const [newFieldName, setNewFieldName] = useState('');
+  const [newFieldType, setNewFieldType] = useState<'rate' | 'fee'>('fee');
+  const [newFieldUnit, setNewFieldUnit] = useState('');
+  const [newFieldPrice, setNewFieldPrice] = useState('');
+  const [newFieldStartReading, setNewFieldStartReading] = useState('');
+
   useEffect(() => {
     const fetchRates = async () => {
       try {
         setLoading(true);
-        // FETCH BY OBJECT ID
         const data = await getTariffs(currentObject.id);
         if (data) {
            const mergedData = {
             ...DEFAULT_TARIFFS,
             ...data,
+            customFields: data.customFields || [],
             lastReadings: {
               ...DEFAULT_TARIFFS.lastReadings,
               ...(data.lastReadings || {})
@@ -46,7 +53,7 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
     setMessage(null);
   };
 
-  const handleReadingChange = (field: keyof TariffRates['lastReadings'], value: string) => {
+  const handleReadingChange = (field: string, value: string) => {
     setRates(prev => ({
       ...prev,
       lastReadings: {
@@ -57,11 +64,61 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
     setMessage(null);
   };
 
+  // Custom Fields Logic
+  const handleAddCustomField = () => {
+    if (!newFieldName.trim()) return;
+    
+    const priceVal = parseFloat(newFieldPrice) || 0;
+    const startReadingVal = parseFloat(newFieldStartReading) || 0;
+
+    const newField: CustomFieldConfig = {
+      id: Date.now().toString(),
+      name: newFieldName.trim(),
+      type: newFieldType,
+      unit: newFieldType === 'rate' ? (newFieldUnit || 'units') : undefined,
+      price: priceVal
+    };
+
+    setRates(prev => ({
+      ...prev,
+      customFields: [...prev.customFields, newField],
+      lastReadings: newFieldType === 'rate' ? {
+        ...prev.lastReadings,
+        [newField.id]: startReadingVal
+      } : prev.lastReadings
+    }));
+
+    setNewFieldName('');
+    setNewFieldUnit('');
+    setNewFieldType('fee');
+    setNewFieldPrice('');
+    setNewFieldStartReading('');
+  };
+
+  const handleDeleteCustomField = (id: string) => {
+    setRates(prev => {
+      const newReadings = { ...prev.lastReadings };
+      delete newReadings[id]; // Cleanup reading if exists
+
+      return {
+        ...prev,
+        customFields: prev.customFields.filter(f => f.id !== id),
+        lastReadings: newReadings
+      };
+    });
+  };
+
+  const handleCustomFieldPriceChange = (id: string, value: string) => {
+    setRates(prev => ({
+      ...prev,
+      customFields: prev.customFields.map(f => f.id === id ? { ...f, price: parseFloat(value) || 0 } : f)
+    }));
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     try {
-      // SAVE BY OBJECT ID
       await saveTariffs(currentObject.id, rates);
       setMessage("Settings updated successfully!");
       setTimeout(() => setMessage(null), 3000);
@@ -90,32 +147,26 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
 
       <form onSubmit={handleSave} className="space-y-6">
 
-        {/* Tariffs Section */}
+        {/* Standard Tariffs Section */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center space-x-3">
             <Coins className="h-5 w-5 text-indigo-600" />
             <div>
-              <h2 className="text-lg font-bold text-slate-800">Tariffs & Fees</h2>
-              <p className="text-sm text-slate-500">Manage unit prices and fixed monthly fees.</p>
+              <h2 className="text-lg font-bold text-slate-800">Standard Tariffs</h2>
+              <p className="text-sm text-slate-500">Manage standard utility rates.</p>
             </div>
           </div>
 
           <div className="p-6 space-y-6">
-            
             {/* Electricity */}
             <div className="group">
               <label className="block text-sm font-bold text-slate-700 mb-2">Electricity</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold">
-                  ₴
-                </div>
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold">₴</div>
                 <input
-                  type="number"
-                  step="0.01"
-                  required
-                  value={rates.electricityRate}
+                  type="number" step="0.01" required value={rates.electricityRate}
                   onChange={(e) => handleRateChange('electricityRate', e.target.value)}
-                  className="block w-full pl-8 pr-12 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-900 bg-slate-50 group-hover:bg-white"
+                  className="block w-full pl-8 pr-12 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 transition-all text-slate-900 bg-slate-50 group-hover:bg-white"
                   placeholder="0.00"
                 />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
@@ -131,17 +182,11 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
               <div className="group">
                 <label className="block text-sm font-bold text-slate-700 mb-2">Water Rate</label>
                 <div className="relative">
-                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold">
-                    ₴
-                  </div>
+                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold">₴</div>
                   <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={rates.waterRate}
+                    type="number" step="0.01" required value={rates.waterRate}
                     onChange={(e) => handleRateChange('waterRate', e.target.value)}
-                    className="block w-full pl-8 pr-12 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all text-slate-900 bg-slate-50 group-hover:bg-white"
-                    placeholder="0.00"
+                    className="block w-full pl-8 pr-12 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-cyan-500 transition-all text-slate-900 bg-slate-50 group-hover:bg-white"
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
                     <span className="text-xs font-medium bg-slate-100 px-2 py-1 rounded">/ m³</span>
@@ -150,19 +195,13 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
               </div>
 
               <div className="group">
-                <label className="block text-sm font-bold text-slate-700 mb-2">Water Subscription Fee</label>
+                <label className="block text-sm font-bold text-slate-700 mb-2">Water Sub. Fee</label>
                 <div className="relative">
-                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold">
-                    ₴
-                  </div>
+                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold">₴</div>
                   <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={rates.waterSubscriptionFee}
+                    type="number" step="0.01" required value={rates.waterSubscriptionFee}
                     onChange={(e) => handleRateChange('waterSubscriptionFee', e.target.value)}
-                    className="block w-full pl-8 pr-12 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all text-slate-900 bg-slate-50 group-hover:bg-white"
-                    placeholder="0.00"
+                    className="block w-full pl-8 pr-12 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-cyan-500 transition-all text-slate-900 bg-slate-50 group-hover:bg-white"
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
                     <span className="text-xs font-medium bg-slate-100 px-2 py-1 rounded">fixed</span>
@@ -178,17 +217,11 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
               <div className="group">
                 <label className="block text-sm font-bold text-slate-700 mb-2">Gas Rate</label>
                 <div className="relative">
-                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold">
-                    ₴
-                  </div>
+                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold">₴</div>
                   <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={rates.gasRate}
+                    type="number" step="0.01" required value={rates.gasRate}
                     onChange={(e) => handleRateChange('gasRate', e.target.value)}
-                    className="block w-full pl-8 pr-12 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all text-slate-900 bg-slate-50 group-hover:bg-white"
-                    placeholder="0.00"
+                    className="block w-full pl-8 pr-12 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 transition-all text-slate-900 bg-slate-50 group-hover:bg-white"
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
                     <span className="text-xs font-medium bg-slate-100 px-2 py-1 rounded">/ m³</span>
@@ -197,19 +230,13 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
               </div>
 
               <div className="group">
-                <label className="block text-sm font-bold text-slate-700 mb-2">Gas Distribution Fee</label>
+                <label className="block text-sm font-bold text-slate-700 mb-2">Gas Dist. Fee</label>
                 <div className="relative">
-                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold">
-                    ₴
-                  </div>
+                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold">₴</div>
                   <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={rates.gasDistributionFee}
+                    type="number" step="0.01" required value={rates.gasDistributionFee}
                     onChange={(e) => handleRateChange('gasDistributionFee', e.target.value)}
-                    className="block w-full pl-8 pr-12 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all text-slate-900 bg-slate-50 group-hover:bg-white"
-                    placeholder="0.00"
+                    className="block w-full pl-8 pr-12 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 transition-all text-slate-900 bg-slate-50 group-hover:bg-white"
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
                     <span className="text-xs font-medium bg-slate-100 px-2 py-1 rounded">fixed</span>
@@ -217,17 +244,164 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Custom Fields Section */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center space-x-3">
+            <Layers className="h-5 w-5 text-indigo-600" />
+            <div>
+              <h2 className="text-lg font-bold text-slate-800">Additional Services</h2>
+              <p className="text-sm text-slate-500">Add custom services (Internet, Security, etc).</p>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-6">
+            
+            {/* List Existing Custom Fields */}
+            {rates.customFields.map((field) => (
+              <div key={field.id} className="flex flex-col md:flex-row md:items-end gap-3 pb-4 border-b border-slate-50 last:border-0 last:pb-0">
+                <div className="flex-1">
+                  <label className="block text-xs font-bold text-slate-500 mb-1">{field.name} ({field.type})</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold">₴</div>
+                    <input
+                      type="number" step="0.01" required 
+                      value={field.price}
+                      onChange={(e) => handleCustomFieldPriceChange(field.id, e.target.value)}
+                      className="block w-full pl-8 pr-12 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 text-slate-900 bg-slate-50"
+                    />
+                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
+                      <span className="text-xs font-medium bg-slate-100 px-2 py-1 rounded">
+                        {field.type === 'rate' ? `/ ${field.unit}` : 'fixed'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                {field.type === 'rate' && (
+                   <div className="w-full md:w-32">
+                      <label className="block text-xs font-bold text-slate-500 mb-1">Current Reading</label>
+                      <input 
+                         type="number"
+                         step="1"
+                         value={rates.lastReadings[field.id] || 0}
+                         onChange={(e) => handleReadingChange(field.id, e.target.value)}
+                         className="block w-full px-3 py-2 border border-slate-200 rounded-lg text-slate-900 bg-slate-50"
+                         placeholder="0"
+                      />
+                   </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleDeleteCustomField(field.id)}
+                  className="p-2.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors self-end"
+                >
+                  <Trash2 className="h-5 w-5" />
+                </button>
+              </div>
+            ))}
+
+            {/* Add New Field Form */}
+            <div className="bg-slate-50 p-4 rounded-xl border border-dashed border-slate-300">
+              <h4 className="text-sm font-bold text-slate-700 mb-3 flex items-center">
+                <Plus className="h-4 w-4 mr-1" /> Add New Service
+              </h4>
+              <div className="grid grid-cols-1 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Service Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Internet, Security"
+                      value={newFieldName}
+                      onChange={(e) => setNewFieldName(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Type</label>
+                    <select
+                      value={newFieldType}
+                      onChange={(e) => setNewFieldType(e.target.value as 'rate' | 'fee')}
+                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white"
+                    >
+                      <option value="fee">Fixed Fee</option>
+                      <option value="rate">Metered Rate</option>
+                    </select>
+                  </div>
+                </div>
+                
+                {/* Conditional Inputs based on Type */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                   {newFieldType === 'fee' ? (
+                     <div className="md:col-span-3">
+                        <label className="block text-xs font-medium text-slate-500 mb-1">Fee Amount (₴)</label>
+                        <input
+                          type="number"
+                          placeholder="0.00"
+                          value={newFieldPrice}
+                          onChange={(e) => setNewFieldPrice(e.target.value)}
+                          className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"
+                        />
+                     </div>
+                   ) : (
+                     <>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Unit</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. kWh"
+                            value={newFieldUnit}
+                            onChange={(e) => setNewFieldUnit(e.target.value)}
+                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Rate Price (₴)</label>
+                          <input
+                            type="number"
+                            placeholder="0.00"
+                            value={newFieldPrice}
+                            onChange={(e) => setNewFieldPrice(e.target.value)}
+                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Start Reading</label>
+                          <input
+                            type="number"
+                            placeholder="0"
+                            value={newFieldStartReading}
+                            onChange={(e) => setNewFieldStartReading(e.target.value)}
+                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"
+                          />
+                        </div>
+                     </>
+                   )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleAddCustomField}
+                  disabled={!newFieldName}
+                  className="w-full mt-2 bg-slate-800 text-white py-2 rounded-lg text-sm font-medium hover:bg-slate-900 disabled:opacity-50"
+                >
+                  Add Service
+                </button>
+              </div>
+            </div>
 
           </div>
         </div>
 
-        {/* Meter Readings Section */}
+        {/* Standard Meter Readings Section */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center space-x-3">
             <Gauge className="h-5 w-5 text-indigo-600" />
              <div>
               <h2 className="text-lg font-bold text-slate-800">Meter Readings</h2>
-              <p className="text-sm text-slate-500">Initial or previous meter values.</p>
+              <p className="text-sm text-slate-500">Current/Previous readings for standard utilities.</p>
             </div>
           </div>
 
@@ -236,34 +410,28 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Electricity (kWh)</label>
                   <input
-                    type="number"
-                    step="1"
-                    required
+                    type="number" step="1" required
                     value={rates.lastReadings.electricity}
                     onChange={(e) => handleReadingChange('electricity', e.target.value)}
-                    className="block w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 bg-slate-50"
+                    className="block w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-slate-50"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Water (m³)</label>
                   <input
-                    type="number"
-                    step="1"
-                    required
+                    type="number" step="1" required
                     value={rates.lastReadings.water}
                     onChange={(e) => handleReadingChange('water', e.target.value)}
-                    className="block w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-slate-900 bg-slate-50"
+                    className="block w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-cyan-500 bg-slate-50"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Gas (m³)</label>
                   <input
-                    type="number"
-                    step="1"
-                    required
+                    type="number" step="1" required
                     value={rates.lastReadings.gas}
                     onChange={(e) => handleReadingChange('gas', e.target.value)}
-                    className="block w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-slate-900 bg-slate-50"
+                    className="block w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 bg-slate-50"
                   />
                 </div>
              </div>
@@ -296,3 +464,4 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
 };
 
 export default Settings;
+    
