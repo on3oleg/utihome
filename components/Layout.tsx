@@ -1,7 +1,7 @@
-
 import React, { useState } from 'react';
 import { ViewState, User, UserObject } from '../types';
 import { Calculator, History, Settings, Zap, Menu, X, LogOut, User as UserIcon, Home, ChevronDown, PlusCircle } from 'lucide-react';
+import { useLanguage } from '../i18n';
 
 interface LayoutProps {
   user: User;
@@ -22,6 +22,7 @@ const Layout: React.FC<LayoutProps> = ({
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isObjectDropdownOpen, setIsObjectDropdownOpen] = useState(false);
+  const { t } = useLanguage();
 
   const handleNavClick = (view: ViewState) => {
     onChangeView(view);
@@ -29,9 +30,9 @@ const Layout: React.FC<LayoutProps> = ({
   };
 
   const navItems = [
-    { id: 'calculator', label: 'Calculator', icon: Calculator },
-    { id: 'history', label: 'History', icon: History },
-    { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'calculator', label: t.layout.calculator, icon: Calculator },
+    { id: 'history', label: t.layout.history, icon: History },
+    { id: 'settings', label: t.layout.settings, icon: Settings },
   ] as const;
 
   return (
@@ -95,7 +96,7 @@ const Layout: React.FC<LayoutProps> = ({
                         className="w-full text-left px-4 py-2 text-sm text-indigo-600 font-medium hover:bg-indigo-50 flex items-center"
                        >
                          <PlusCircle className="h-4 w-4 mr-2" />
-                         Add Property
+                         {t.layout.addProperty}
                        </button>
                     </div>
                   </div>
@@ -109,7 +110,7 @@ const Layout: React.FC<LayoutProps> = ({
             {navItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => handleNavClick(item.id)}
+                onClick={() => handleNavClick(item.id as ViewState)}
                 className={`flex items-center space-x-1 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                   currentView === item.id 
                     ? 'bg-white text-indigo-700 shadow-sm' 
@@ -124,7 +125,7 @@ const Layout: React.FC<LayoutProps> = ({
             <button 
               onClick={onLogout}
               className="flex items-center space-x-1 px-3 py-2 rounded-full text-sm font-medium text-indigo-100 hover:bg-indigo-500 hover:text-white transition-colors"
-              title="Logout"
+              title={t.layout.signOut}
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -149,14 +150,14 @@ const Layout: React.FC<LayoutProps> = ({
                </div>
                <div className="overflow-hidden">
                  <p className="text-sm font-bold text-slate-900 truncate">{user.email}</p>
-                 <p className="text-xs text-slate-500">Logged in</p>
+                 <p className="text-xs text-slate-500">{t.layout.loggedIn}</p>
                </div>
             </div>
             <div className="p-2 space-y-1">
               {navItems.map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => handleNavClick(item.id)}
+                  onClick={() => handleNavClick(item.id as ViewState)}
                   className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                     currentView === item.id 
                       ? 'bg-indigo-50 text-indigo-700' 
@@ -176,7 +177,7 @@ const Layout: React.FC<LayoutProps> = ({
                 className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
               >
                 <LogOut className="h-5 w-5" />
-                <span>Sign Out</span>
+                <span>{t.layout.signOut}</span>
               </button>
             </div>
           </div>

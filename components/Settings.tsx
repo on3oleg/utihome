@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { TariffRates, DEFAULT_TARIFFS, User, UserObject, CustomFieldConfig } from '../types';
 import { getTariffs, saveTariffs } from '../services/db';
-import { Save, Loader2, CheckCircle2, Gauge, Coins, Plus, Trash2, Tag, Layers } from 'lucide-react';
+import { Save, Loader2, CheckCircle2, Gauge, Coins, Plus, Trash2, Tag, Layers, Globe } from 'lucide-react';
+import { useLanguage, Language } from '../i18n';
 
 interface SettingsProps {
   user: User;
@@ -14,6 +14,7 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const { t, language, setLanguage } = useLanguage();
 
   // New Field State
   const [newFieldName, setNewFieldName] = useState('');
@@ -120,10 +121,10 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
     setSaving(true);
     try {
       await saveTariffs(currentObject.id, rates);
-      setMessage("Settings updated successfully!");
+      setMessage(t.settings.saveSuccess);
       setTimeout(() => setMessage(null), 3000);
     } catch (err) {
-      setMessage("Failed to save settings.");
+      setMessage(t.settings.saveError);
     } finally {
       setSaving(false);
     }
@@ -140,9 +141,24 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
   return (
     <div className="max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
       
-      <div className="flex items-center space-x-2 text-slate-500 text-sm mb-4">
-        <span>Settings for:</span>
-        <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">{currentObject.name}</span>
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center space-x-2 text-slate-500 text-sm">
+          <span>{t.settings.settingsFor}</span>
+          <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">{currentObject.name}</span>
+        </div>
+
+        {/* Language Selector */}
+        <div className="flex items-center space-x-2 bg-white rounded-lg px-3 py-1.5 shadow-sm border border-slate-200">
+           <Globe className="h-4 w-4 text-slate-400" />
+           <select 
+             value={language}
+             onChange={(e) => setLanguage(e.target.value as Language)}
+             className="text-sm font-medium text-slate-700 bg-transparent outline-none cursor-pointer"
+           >
+             <option value="en">English</option>
+             <option value="uk">Українська</option>
+           </select>
+        </div>
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
@@ -152,15 +168,15 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
           <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center space-x-3">
             <Coins className="h-5 w-5 text-indigo-600" />
             <div>
-              <h2 className="text-lg font-bold text-slate-800">Standard Tariffs</h2>
-              <p className="text-sm text-slate-500">Manage standard utility rates.</p>
+              <h2 className="text-lg font-bold text-slate-800">{t.settings.standardTariffs}</h2>
+              <p className="text-sm text-slate-500">{t.settings.standardTariffsDesc}</p>
             </div>
           </div>
 
           <div className="p-6 space-y-6">
             {/* Electricity */}
             <div className="group">
-              <label className="block text-sm font-bold text-slate-700 mb-2">Electricity</label>
+              <label className="block text-sm font-bold text-slate-700 mb-2">{t.calculator.electricity}</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold">₴</div>
                 <input
@@ -170,7 +186,7 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
                   placeholder="0.00"
                 />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
-                  <span className="text-xs font-medium bg-slate-100 px-2 py-1 rounded">/ kWh</span>
+                  <span className="text-xs font-medium bg-slate-100 px-2 py-1 rounded">/ {t.common.units.kwh}</span>
                 </div>
               </div>
             </div>
@@ -180,7 +196,7 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
             {/* Water */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="group">
-                <label className="block text-sm font-bold text-slate-700 mb-2">Water Rate</label>
+                <label className="block text-sm font-bold text-slate-700 mb-2">{t.settings.waterRate}</label>
                 <div className="relative">
                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold">₴</div>
                   <input
@@ -189,13 +205,13 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
                     className="block w-full pl-8 pr-12 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-cyan-500 transition-all text-slate-900 bg-slate-50 group-hover:bg-white"
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
-                    <span className="text-xs font-medium bg-slate-100 px-2 py-1 rounded">/ m³</span>
+                    <span className="text-xs font-medium bg-slate-100 px-2 py-1 rounded">/ {t.common.units.m3}</span>
                   </div>
                 </div>
               </div>
 
               <div className="group">
-                <label className="block text-sm font-bold text-slate-700 mb-2">Water Sub. Fee</label>
+                <label className="block text-sm font-bold text-slate-700 mb-2">{t.settings.waterSubFee}</label>
                 <div className="relative">
                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold">₴</div>
                   <input
@@ -204,7 +220,7 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
                     className="block w-full pl-8 pr-12 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-cyan-500 transition-all text-slate-900 bg-slate-50 group-hover:bg-white"
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
-                    <span className="text-xs font-medium bg-slate-100 px-2 py-1 rounded">fixed</span>
+                    <span className="text-xs font-medium bg-slate-100 px-2 py-1 rounded">{t.common.units.fixed}</span>
                   </div>
                 </div>
               </div>
@@ -215,7 +231,7 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
             {/* Gas */}
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="group">
-                <label className="block text-sm font-bold text-slate-700 mb-2">Gas Rate</label>
+                <label className="block text-sm font-bold text-slate-700 mb-2">{t.settings.gasRate}</label>
                 <div className="relative">
                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold">₴</div>
                   <input
@@ -224,13 +240,13 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
                     className="block w-full pl-8 pr-12 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 transition-all text-slate-900 bg-slate-50 group-hover:bg-white"
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
-                    <span className="text-xs font-medium bg-slate-100 px-2 py-1 rounded">/ m³</span>
+                    <span className="text-xs font-medium bg-slate-100 px-2 py-1 rounded">/ {t.common.units.m3}</span>
                   </div>
                 </div>
               </div>
 
               <div className="group">
-                <label className="block text-sm font-bold text-slate-700 mb-2">Gas Dist. Fee</label>
+                <label className="block text-sm font-bold text-slate-700 mb-2">{t.settings.gasDistFee}</label>
                 <div className="relative">
                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold">₴</div>
                   <input
@@ -239,7 +255,7 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
                     className="block w-full pl-8 pr-12 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 transition-all text-slate-900 bg-slate-50 group-hover:bg-white"
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
-                    <span className="text-xs font-medium bg-slate-100 px-2 py-1 rounded">fixed</span>
+                    <span className="text-xs font-medium bg-slate-100 px-2 py-1 rounded">{t.common.units.fixed}</span>
                   </div>
                 </div>
               </div>
@@ -252,8 +268,8 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
           <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center space-x-3">
             <Layers className="h-5 w-5 text-indigo-600" />
             <div>
-              <h2 className="text-lg font-bold text-slate-800">Additional Services</h2>
-              <p className="text-sm text-slate-500">Add custom services (Internet, Security, etc).</p>
+              <h2 className="text-lg font-bold text-slate-800">{t.settings.additionalServices}</h2>
+              <p className="text-sm text-slate-500">{t.settings.additionalServicesDesc}</p>
             </div>
           </div>
 
@@ -263,7 +279,7 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
             {rates.customFields.map((field) => (
               <div key={field.id} className="flex flex-col md:flex-row md:items-end gap-3 pb-4 border-b border-slate-50 last:border-0 last:pb-0">
                 <div className="flex-1">
-                  <label className="block text-xs font-bold text-slate-500 mb-1">{field.name} ({field.type})</label>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">{field.name} ({field.type === 'fee' ? t.settings.types.fee : t.settings.types.rate})</label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold">₴</div>
                     <input
@@ -274,14 +290,14 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
                     />
                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
                       <span className="text-xs font-medium bg-slate-100 px-2 py-1 rounded">
-                        {field.type === 'rate' ? `/ ${field.unit}` : 'fixed'}
+                        {field.type === 'rate' ? `/ ${field.unit}` : t.common.units.fixed}
                       </span>
                     </div>
                   </div>
                 </div>
                 {field.type === 'rate' && (
                    <div className="w-full md:w-32">
-                      <label className="block text-xs font-bold text-slate-500 mb-1">Current Reading</label>
+                      <label className="block text-xs font-bold text-slate-500 mb-1">{t.settings.currentReading}</label>
                       <input 
                          type="number"
                          step="1"
@@ -305,29 +321,29 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
             {/* Add New Field Form */}
             <div className="bg-slate-50 p-4 rounded-xl border border-dashed border-slate-300">
               <h4 className="text-sm font-bold text-slate-700 mb-3 flex items-center">
-                <Plus className="h-4 w-4 mr-1" /> Add New Service
+                <Plus className="h-4 w-4 mr-1" /> {t.settings.addService}
               </h4>
               <div className="grid grid-cols-1 gap-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">Service Name</label>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">{t.settings.serviceName}</label>
                     <input
                       type="text"
-                      placeholder="e.g. Internet, Security"
+                      placeholder="e.g. Internet"
                       value={newFieldName}
                       onChange={(e) => setNewFieldName(e.target.value)}
                       className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">Type</label>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">{t.settings.type}</label>
                     <select
                       value={newFieldType}
                       onChange={(e) => setNewFieldType(e.target.value as 'rate' | 'fee')}
                       className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white"
                     >
-                      <option value="fee">Fixed Fee</option>
-                      <option value="rate">Metered Rate</option>
+                      <option value="fee">{t.settings.types.fee}</option>
+                      <option value="rate">{t.settings.types.rate}</option>
                     </select>
                   </div>
                 </div>
@@ -336,7 +352,7 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                    {newFieldType === 'fee' ? (
                      <div className="md:col-span-3">
-                        <label className="block text-xs font-medium text-slate-500 mb-1">Fee Amount (₴)</label>
+                        <label className="block text-xs font-medium text-slate-500 mb-1">{t.settings.feeAmount} (₴)</label>
                         <input
                           type="number"
                           placeholder="0.00"
@@ -348,7 +364,7 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
                    ) : (
                      <>
                         <div>
-                          <label className="block text-xs font-medium text-slate-500 mb-1">Unit</label>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">{t.settings.unit}</label>
                           <input
                             type="text"
                             placeholder="e.g. kWh"
@@ -358,7 +374,7 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-500 mb-1">Rate Price (₴)</label>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">{t.settings.ratePrice} (₴)</label>
                           <input
                             type="number"
                             placeholder="0.00"
@@ -368,7 +384,7 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-500 mb-1">Start Reading</label>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">{t.settings.startReading}</label>
                           <input
                             type="number"
                             placeholder="0"
@@ -385,9 +401,9 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
                   type="button"
                   onClick={handleAddCustomField}
                   disabled={!newFieldName}
-                  className="w-full mt-2 bg-slate-800 text-white py-2 rounded-lg text-sm font-medium hover:bg-slate-900 disabled:opacity-50"
+                  className="w-full mt-2 bg-white text-slate-700 border border-slate-300 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 disabled:opacity-50 shadow-sm"
                 >
-                  Add Service
+                  {t.settings.addService}
                 </button>
               </div>
             </div>
@@ -400,15 +416,15 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
           <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center space-x-3">
             <Gauge className="h-5 w-5 text-indigo-600" />
              <div>
-              <h2 className="text-lg font-bold text-slate-800">Meter Readings</h2>
-              <p className="text-sm text-slate-500">Current/Previous readings for standard utilities.</p>
+              <h2 className="text-lg font-bold text-slate-800">{t.settings.meterReadings}</h2>
+              <p className="text-sm text-slate-500">{t.settings.meterReadingsDesc}</p>
             </div>
           </div>
 
           <div className="p-6 space-y-4">
              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Electricity (kWh)</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{t.calculator.electricity} ({t.common.units.kwh})</label>
                   <input
                     type="number" step="1" required
                     value={rates.lastReadings.electricity}
@@ -417,7 +433,7 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Water (m³)</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{t.calculator.water} ({t.common.units.m3})</label>
                   <input
                     type="number" step="1" required
                     value={rates.lastReadings.water}
@@ -426,7 +442,7 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Gas (m³)</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{t.calculator.gas} ({t.common.units.m3})</label>
                   <input
                     type="number" step="1" required
                     value={rates.lastReadings.gas}
@@ -455,7 +471,7 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
               : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg'
             }`}
           >
-            {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Save className="h-5 w-5" /> <span>Save All Settings</span></>}
+            {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Save className="h-5 w-5" /> <span>{t.settings.saveButton}</span></>}
           </button>
         </div>
       </form>
@@ -464,4 +480,3 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
 };
 
 export default Settings;
-    

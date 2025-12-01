@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import { loginUser, registerUser } from '../services/db';
 import { User } from '../types';
 import { Zap, Loader2, Lock, Mail, UserPlus, LogIn } from 'lucide-react';
+import { useLanguage } from '../i18n';
 
 interface AuthProps {
   onLogin: (user: User) => void;
@@ -14,6 +14,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { t } = useLanguage();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,17 +25,17 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       let user: User | null = null;
       if (isLogin) {
         user = await loginUser(email, password);
-        if (!user) throw new Error("Invalid email or password");
+        if (!user) throw new Error(t.auth.errors.invalid);
       } else {
         user = await registerUser(email, password);
-        if (!user) throw new Error("Registration failed. Email might be taken.");
+        if (!user) throw new Error(t.auth.errors.taken);
       }
       
       if (user) {
         onLogin(user);
       }
     } catch (err: any) {
-      setError(err.message || "An error occurred");
+      setError(err.message || t.auth.errors.generic);
     } finally {
       setLoading(false);
     }
@@ -47,18 +48,18 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           <Zap className="h-8 w-8 text-yellow-300" />
         </div>
         <h1 className="text-3xl font-bold text-slate-800 tracking-tight">UtiHome</h1>
-        <p className="text-slate-500 mt-2">Smart Utility Tracking</p>
+        <p className="text-slate-500 mt-2">{t.layout.subtitle}</p>
       </div>
 
       <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-slate-100 overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
         <div className="p-8">
           <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">
-            {isLogin ? 'Welcome Back' : 'Create Account'}
+            {isLogin ? t.auth.welcomeBack : t.auth.createAccount}
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t.auth.email}</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                   <Mail className="h-5 w-5" />
@@ -75,7 +76,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t.auth.password}</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                   <Lock className="h-5 w-5" />
@@ -107,7 +108,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
               ) : (
                 <>
                   {isLogin ? <LogIn className="h-5 w-5" /> : <UserPlus className="h-5 w-5" />}
-                  <span>{isLogin ? 'Sign In' : 'Create Account'}</span>
+                  <span>{isLogin ? t.auth.signInAction : t.auth.signUpAction}</span>
                 </>
               )}
             </button>
@@ -116,7 +117,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         
         <div className="bg-slate-50 p-4 text-center border-t border-slate-100">
           <p className="text-sm text-slate-600">
-            {isLogin ? "Don't have an account? " : "Already have an account? "}
+            {isLogin ? t.auth.noAccount : t.auth.hasAccount}{" "}
             <button
               onClick={() => {
                 setIsLogin(!isLogin);
@@ -124,7 +125,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
               }}
               className="font-bold text-indigo-600 hover:text-indigo-700"
             >
-              {isLogin ? 'Sign up' : 'Sign in'}
+              {isLogin ? t.auth.signUpAction : t.auth.signInAction}
             </button>
           </p>
         </div>

@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { TariffRates, ConsumptionData, CostBreakdown, DEFAULT_TARIFFS, User, UserObject, CustomBillRecord } from '../types';
 import { getTariffs, saveBill, saveTariffs } from '../services/db';
 import { Zap, Droplets, Flame, Save, Loader2, AlertCircle, ArrowRight, Layers, BoxSelect, CheckCircle2, Pencil } from 'lucide-react';
+import { useLanguage } from '../i18n';
 
 interface CalculatorProps {
   user: User;
@@ -15,6 +15,7 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { t } = useLanguage();
 
   // Standard Readings Inputs
   const [currentReadings, setCurrentReadings] = useState({
@@ -99,13 +100,13 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
         }
       } catch (err) {
         console.error("Error loading tariffs:", err);
-        setError("Failed to load tariff rates.");
+        setError(t.calculator.loadError);
       } finally {
         setLoading(false);
       }
     };
     fetchRates();
-  }, [currentObject.id]);
+  }, [currentObject.id, t.calculator.loadError]);
 
   useEffect(() => {
     // 1. Calculate Standard Utilities
@@ -240,11 +241,10 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
       setRates(newRates);
       setCurrentReadings({ electricity: '', water: '', gas: '' });
       setCustomReadings({});
-      // Reset fee overrides to defaults from rates after save (optional, but cleaner)
       onSaved();
     } catch (err: any) {
       console.error("Save failed:", err);
-      setError("Failed to save bill. Please try again.");
+      setError(t.calculator.saveError);
     } finally {
       setSaving(false);
     }
@@ -260,7 +260,7 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       
       <div className="flex items-center space-x-2 text-slate-500 text-sm">
-        <span>Calculating for:</span>
+        <span>{t.calculator.calculatingFor}</span>
         <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">{currentObject.name}</span>
       </div>
 
@@ -279,18 +279,18 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
             <div className="flex items-center space-x-2">
                <div className="p-2 bg-blue-100 rounded-lg text-blue-600"><Zap className="h-5 w-5" /></div>
               <div>
-                <h3 className="font-semibold text-slate-700">Electricity</h3>
-                <p className="text-xs text-slate-400">Rate: {formatCurrency(rates.electricityRate)} /kWh</p>
+                <h3 className="font-semibold text-slate-700">{t.calculator.electricity}</h3>
+                <p className="text-xs text-slate-400">{t.calculator.rate}: {formatCurrency(rates.electricityRate)} /{t.common.units.kwh}</p>
               </div>
             </div>
             <div className="text-right">
-               <p className="text-xs font-semibold text-slate-500 uppercase">Prev</p>
+               <p className="text-xs font-semibold text-slate-500 uppercase">{t.calculator.prev}</p>
                <p className="font-mono text-slate-700">{rates.lastReadings.electricity}</p>
             </div>
           </div>
           <div className="flex items-end space-x-4">
             <div className="flex-1">
-              <label className="block text-xs font-medium text-slate-500 mb-1">Current</label>
+              <label className="block text-xs font-medium text-slate-500 mb-1">{t.calculator.current}</label>
               <input
                 type="number" min={rates.lastReadings.electricity} step="1"
                 value={currentReadings.electricity}
@@ -301,9 +301,9 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
             </div>
             <ArrowRight className="h-4 w-4 text-slate-300 mb-2" />
             <div className="flex-1 text-right pb-2">
-               <span className="block text-xs font-medium text-slate-500 mb-1">Usage</span>
+               <span className="block text-xs font-medium text-slate-500 mb-1">{t.calculator.usage}</span>
                <span className={`text-xl font-bold ${consumption.electricity > 0 ? 'text-blue-600' : 'text-slate-300'}`}>
-                 {consumption.electricity} <span className="text-sm font-normal text-slate-400">kWh</span>
+                 {consumption.electricity} <span className="text-sm font-normal text-slate-400">{t.common.units.kwh}</span>
                </span>
             </div>
           </div>
@@ -315,18 +315,18 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
             <div className="flex items-center space-x-2">
                <div className="p-2 bg-cyan-100 rounded-lg text-cyan-600"><Droplets className="h-5 w-5" /></div>
               <div>
-                <h3 className="font-semibold text-slate-700">Water</h3>
-                <p className="text-xs text-slate-400">Rate: {formatCurrency(rates.waterRate)} /m³</p>
+                <h3 className="font-semibold text-slate-700">{t.calculator.water}</h3>
+                <p className="text-xs text-slate-400">{t.calculator.rate}: {formatCurrency(rates.waterRate)} /{t.common.units.m3}</p>
               </div>
             </div>
             <div className="text-right">
-               <p className="text-xs font-semibold text-slate-500 uppercase">Prev</p>
+               <p className="text-xs font-semibold text-slate-500 uppercase">{t.calculator.prev}</p>
                <p className="font-mono text-slate-700">{rates.lastReadings.water}</p>
             </div>
           </div>
           <div className="flex items-end space-x-4 mb-4">
             <div className="flex-1">
-              <label className="block text-xs font-medium text-slate-500 mb-1">Current</label>
+              <label className="block text-xs font-medium text-slate-500 mb-1">{t.calculator.current}</label>
               <input
                 type="number" min={rates.lastReadings.water} step="1"
                 value={currentReadings.water}
@@ -337,15 +337,15 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
             </div>
             <ArrowRight className="h-4 w-4 text-slate-300 mb-2" />
             <div className="flex-1 text-right pb-2">
-               <span className="block text-xs font-medium text-slate-500 mb-1">Usage</span>
+               <span className="block text-xs font-medium text-slate-500 mb-1">{t.calculator.usage}</span>
                <span className={`text-xl font-bold ${consumption.water > 0 ? 'text-cyan-600' : 'text-slate-300'}`}>
-                 {consumption.water} <span className="text-sm font-normal text-slate-400">m³</span>
+                 {consumption.water} <span className="text-sm font-normal text-slate-400">{t.common.units.m3}</span>
                </span>
             </div>
           </div>
           {/* Editable Fixed Fee */}
           <div className="pt-3 border-t border-slate-50 flex items-center justify-between">
-             <label className="text-xs font-medium text-slate-400 flex items-center"><Pencil className="h-3 w-3 mr-1" /> Fixed Fee</label>
+             <label className="text-xs font-medium text-slate-400 flex items-center"><Pencil className="h-3 w-3 mr-1" /> {t.calculator.fixedFee}</label>
              <div className="flex items-center space-x-1">
                <span className="text-xs font-bold text-slate-400">₴</span>
                <input 
@@ -364,18 +364,18 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
             <div className="flex items-center space-x-2">
                <div className="p-2 bg-orange-100 rounded-lg text-orange-600"><Flame className="h-5 w-5" /></div>
               <div>
-                <h3 className="font-semibold text-slate-700">Gas</h3>
-                <p className="text-xs text-slate-400">Rate: {formatCurrency(rates.gasRate)} /m³</p>
+                <h3 className="font-semibold text-slate-700">{t.calculator.gas}</h3>
+                <p className="text-xs text-slate-400">{t.calculator.rate}: {formatCurrency(rates.gasRate)} /{t.common.units.m3}</p>
               </div>
             </div>
             <div className="text-right">
-               <p className="text-xs font-semibold text-slate-500 uppercase">Prev</p>
+               <p className="text-xs font-semibold text-slate-500 uppercase">{t.calculator.prev}</p>
                <p className="font-mono text-slate-700">{rates.lastReadings.gas}</p>
             </div>
           </div>
           <div className="flex items-end space-x-4 mb-4">
             <div className="flex-1">
-              <label className="block text-xs font-medium text-slate-500 mb-1">Current</label>
+              <label className="block text-xs font-medium text-slate-500 mb-1">{t.calculator.current}</label>
               <input
                 type="number" min={rates.lastReadings.gas} step="1"
                 value={currentReadings.gas}
@@ -386,15 +386,15 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
             </div>
             <ArrowRight className="h-4 w-4 text-slate-300 mb-2" />
             <div className="flex-1 text-right pb-2">
-               <span className="block text-xs font-medium text-slate-500 mb-1">Usage</span>
+               <span className="block text-xs font-medium text-slate-500 mb-1">{t.calculator.usage}</span>
                <span className={`text-xl font-bold ${consumption.gas > 0 ? 'text-orange-600' : 'text-slate-300'}`}>
-                 {consumption.gas} <span className="text-sm font-normal text-slate-400">m³</span>
+                 {consumption.gas} <span className="text-sm font-normal text-slate-400">{t.common.units.m3}</span>
                </span>
             </div>
           </div>
           {/* Editable Fixed Fee */}
           <div className="pt-3 border-t border-slate-50 flex items-center justify-between">
-             <label className="text-xs font-medium text-slate-400 flex items-center"><Pencil className="h-3 w-3 mr-1" /> Fixed Fee</label>
+             <label className="text-xs font-medium text-slate-400 flex items-center"><Pencil className="h-3 w-3 mr-1" /> {t.calculator.fixedFee}</label>
              <div className="flex items-center space-x-1">
                <span className="text-xs font-bold text-slate-400">₴</span>
                <input 
@@ -421,17 +421,17 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
                   <div className="p-2 bg-purple-100 rounded-lg text-purple-600"><Layers className="h-5 w-5" /></div>
                   <div>
                     <h3 className="font-semibold text-slate-700">{field.name}</h3>
-                    <p className="text-xs text-slate-400">Rate: {formatCurrency(field.price)} /{field.unit}</p>
+                    <p className="text-xs text-slate-400">{t.calculator.rate}: {formatCurrency(field.price)} /{field.unit}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs font-semibold text-slate-500 uppercase">Prev</p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase">{t.calculator.prev}</p>
                   <p className="font-mono text-slate-700">{prevVal}</p>
                 </div>
               </div>
               <div className="flex items-end space-x-4">
                 <div className="flex-1">
-                  <label className="block text-xs font-medium text-slate-500 mb-1">Current</label>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">{t.calculator.current}</label>
                   <input
                     type="number" min={prevVal} step="1"
                     value={currValString}
@@ -442,7 +442,7 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
                 </div>
                 <ArrowRight className="h-4 w-4 text-slate-300 mb-2" />
                 <div className="flex-1 text-right pb-2">
-                  <span className="block text-xs font-medium text-slate-500 mb-1">Usage</span>
+                  <span className="block text-xs font-medium text-slate-500 mb-1">{t.calculator.usage}</span>
                   <span className={`text-xl font-bold ${usage > 0 ? 'text-purple-600' : 'text-slate-300'}`}>
                     {usage} <span className="text-sm font-normal text-slate-400">{field.unit}</span>
                   </span>
@@ -460,7 +460,7 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
               <div>
                 <h3 className="font-semibold text-slate-700">{field.name}</h3>
                 <p className="text-xs text-slate-400 flex items-center">
-                   Fixed Monthly Fee
+                   {t.settings.types.fee}
                 </p>
               </div>
             </div>
@@ -481,7 +481,7 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
       {/* Results Section */}
       <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
         <div className="p-6 bg-gradient-to-br from-slate-50 to-slate-100 border-b border-slate-200">
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Estimated Bill</h2>
+          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">{t.calculator.estimatedBill}</h2>
           <div className="mt-2 flex items-baseline">
             <span className="text-4xl font-extrabold text-slate-900">{formatCurrency(totalCost)}</span>
           </div>
@@ -490,15 +490,15 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
         <div className="p-6 space-y-4">
           {/* Standard Breakdown */}
           <div className="flex justify-between text-sm">
-            <div className="flex items-center text-slate-600"><Zap className="h-4 w-4 mr-2 text-blue-500"/> Electricity</div>
+            <div className="flex items-center text-slate-600"><Zap className="h-4 w-4 mr-2 text-blue-500"/> {t.calculator.electricity}</div>
             <span className="font-medium text-slate-900">{formatCurrency(breakdown.electricityCost)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <div className="flex items-center text-slate-600"><Droplets className="h-4 w-4 mr-2 text-cyan-500"/> Water <span className="text-xs text-slate-400 ml-1">(+ {formatCurrency(breakdown.waterSubscriptionFee)} fixed)</span></div>
+            <div className="flex items-center text-slate-600"><Droplets className="h-4 w-4 mr-2 text-cyan-500"/> {t.calculator.water} <span className="text-xs text-slate-400 ml-1">(+ {formatCurrency(breakdown.waterSubscriptionFee)} {t.common.units.fixed})</span></div>
             <span className="font-medium text-slate-900">{formatCurrency(breakdown.waterCost + breakdown.waterSubscriptionFee)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <div className="flex items-center text-slate-600"><Flame className="h-4 w-4 mr-2 text-orange-500"/> Gas <span className="text-xs text-slate-400 ml-1">(+ {formatCurrency(breakdown.gasDistributionFee)} fixed)</span></div>
+            <div className="flex items-center text-slate-600"><Flame className="h-4 w-4 mr-2 text-orange-500"/> {t.calculator.gas} <span className="text-xs text-slate-400 ml-1">(+ {formatCurrency(breakdown.gasDistributionFee)} {t.common.units.fixed})</span></div>
             <span className="font-medium text-slate-900">{formatCurrency(breakdown.gasCost + breakdown.gasDistributionFee)}</span>
           </div>
 
@@ -524,7 +524,7 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
             className={`w-full flex items-center justify-center space-x-2 py-3.5 px-6 rounded-xl text-sm font-bold shadow-md transition-all
               ${saving || totalCost <= 0 ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none' : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-lg'}`}
           >
-            {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Save className="h-5 w-5" /> <span>Save Bill & Update Readings</span></>}
+            {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Save className="h-5 w-5" /> <span>{t.calculator.saveButton}</span></>}
           </button>
         </div>
       </div>

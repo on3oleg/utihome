@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from './components/Layout';
 import Calculator from './components/Calculator';
@@ -9,14 +8,16 @@ import ObjectManager from './components/ObjectManager';
 import { getObjects, createObject } from './services/db';
 import { ViewState, User, UserObject } from './types';
 import { Loader2 } from 'lucide-react';
+import { LanguageProvider, useLanguage } from './i18n';
 
-const App: React.FC = () => {
+const UtiHomeApp: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState<ViewState>('calculator');
   const [objects, setObjects] = useState<UserObject[]>([]);
   const [currentObject, setCurrentObject] = useState<UserObject | null>(null);
   const [loadingObjects, setLoadingObjects] = useState(false);
   const [showObjectManager, setShowObjectManager] = useState(false);
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (user) {
@@ -44,6 +45,8 @@ const App: React.FC = () => {
         });
       } else {
         // Create a default object if none exist (e.g. for new users)
+        // Note: Ideally "My Home" should be localized, but since this persists in DB,
+        // it creates a static string. We use English or a neutral default.
         const defObj = await createObject(user.id, "My Home", "Main Residence");
         setObjects([defObj]);
         setCurrentObject(defObj);
@@ -101,7 +104,7 @@ const App: React.FC = () => {
       >
         {currentObject ? renderContent() : (
           <div className="text-center p-10 text-slate-500">
-             Loading objects...
+             {t.common.loading}
           </div>
         )}
       </Layout>
@@ -114,6 +117,14 @@ const App: React.FC = () => {
         />
       )}
     </>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <LanguageProvider>
+      <UtiHomeApp />
+    </LanguageProvider>
   );
 };
 
