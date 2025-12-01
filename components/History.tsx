@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { BillRecord, User, UserObject } from '../types';
 import { subscribeToHistory } from '../services/db';
 import { Loader2, Calendar, ChevronDown, ChevronUp, Zap, Droplets, Flame, TrendingUp, Layers } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 
 interface HistoryProps {
   user: User;
@@ -29,6 +29,10 @@ const History: React.FC<HistoryProps> = ({ user, currentObject }) => {
   };
 
   const formatCurrency = (val: number) => {
+    return val.toLocaleString('uk-UA', { style: 'currency', currency: 'UAH', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  };
+  
+  const formatFullCurrency = (val: number) => {
     return val.toLocaleString('uk-UA', { style: 'currency', currency: 'UAH' });
   };
 
@@ -54,10 +58,16 @@ const History: React.FC<HistoryProps> = ({ user, currentObject }) => {
     );
   }
 
-  const chartData = [...bills].reverse().map(bill => ({
-    date: new Date(bill.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-    total: bill.totalCost
-  }));
+  const chartData = [...bills].reverse().map(bill => {
+    const customTotal = bill.customRecords?.reduce((acc, curr) => acc + curr.cost, 0) || 0;
+    return {
+      date: new Date(bill.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+      Electricity: bill.breakdown.electricityCost,
+      Water: bill.breakdown.waterCost + bill.breakdown.waterSubscriptionFee,
+      Gas: bill.breakdown.gasCost + bill.breakdown.gasDistributionFee,
+      Services: customTotal
+    };
+  });
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
@@ -68,22 +78,24 @@ const History: React.FC<HistoryProps> = ({ user, currentObject }) => {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-        <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-6">Cost Trend</h3>
-        <div className="h-48 w-full">
+        <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-6">Cost Breakdown</h3>
+        <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
-              <defs>
-                <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1}/>
-                  <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
+            <BarChart data={chartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
               <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748b'}} dy={10} />
-              <YAxis hide />
-              <Tooltip contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'}} formatter={(value: number) => [formatCurrency(value), 'Total']} />
-              <Area type="monotone" dataKey="total" stroke="#4f46e5" strokeWidth={2} fillOpacity={1} fill="url(#colorTotal)" />
-            </AreaChart>
+              <YAxis tickLine={false} axisLine={false} tick={{fontSize: 12, fill: '#64748b'}} />
+              <Tooltip 
+                cursor={{fill: '#f1f5f9'}}
+                contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'}} 
+                formatter={(value: number) => [formatFullCurrency(value)]} 
+              />
+              <Legend iconType="circle" wrapperStyle={{paddingTop: '20px', fontSize: '12px'}} />
+              <Bar dataKey="Electricity" stackId="a" fill="#3b82f6" radius={[0, 0, 4, 4]} />
+              <Bar dataKey="Water" stackId="a" fill="#06b6d4" />
+              <Bar dataKey="Gas" stackId="a" fill="#f97316" />
+              <Bar dataKey="Services" stackId="a" fill="#a855f7" radius={[4, 4, 0, 0]} />
+            </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
@@ -100,7 +112,7 @@ const History: React.FC<HistoryProps> = ({ user, currentObject }) => {
                 </div>
               </div>
               <div className="flex items-center space-x-3">
-                <span className="font-bold text-slate-900 text-lg">{formatCurrency(bill.totalCost)}</span>
+                <span className="font-bold text-slate-900 text-lg">{formatFullCurrency(bill.totalCost)}</span>
                 {expandedId === bill.id ? <ChevronUp className="h-5 w-5 text-slate-400" /> : <ChevronDown className="h-5 w-5 text-slate-400" />}
               </div>
             </button>
@@ -115,7 +127,7 @@ const History: React.FC<HistoryProps> = ({ user, currentObject }) => {
                     <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-500">{bill.electricityConsumption} kWh</span>
                   </div>
                   <div className="text-right border-t border-slate-50 pt-2 mt-auto">
-                    <p className="text-sm font-bold text-slate-900">{formatCurrency(bill.breakdown.electricityCost)}</p>
+                    <p className="text-sm font-bold text-slate-900">{formatFullCurrency(bill.breakdown.electricityCost)}</p>
                   </div>
                 </div>
 
@@ -125,8 +137,8 @@ const History: React.FC<HistoryProps> = ({ user, currentObject }) => {
                     <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-500">{bill.waterConsumption} m³</span>
                   </div>
                   <div className="text-right border-t border-slate-50 pt-2 mt-auto">
-                     <p className="text-xs text-slate-400 mb-1">Fixed: {formatCurrency(bill.breakdown.waterSubscriptionFee)}</p>
-                     <p className="text-sm font-bold text-slate-900">{formatCurrency(bill.breakdown.waterCost + bill.breakdown.waterSubscriptionFee)}</p>
+                     <p className="text-xs text-slate-400 mb-1">Fixed: {formatFullCurrency(bill.breakdown.waterSubscriptionFee)}</p>
+                     <p className="text-sm font-bold text-slate-900">{formatFullCurrency(bill.breakdown.waterCost + bill.breakdown.waterSubscriptionFee)}</p>
                   </div>
                 </div>
 
@@ -136,8 +148,8 @@ const History: React.FC<HistoryProps> = ({ user, currentObject }) => {
                     <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-500">{bill.gasConsumption} m³</span>
                   </div>
                   <div className="text-right border-t border-slate-50 pt-2 mt-auto">
-                     <p className="text-xs text-slate-400 mb-1">Fixed: {formatCurrency(bill.breakdown.gasDistributionFee)}</p>
-                     <p className="text-sm font-bold text-slate-900">{formatCurrency(bill.breakdown.gasCost + bill.breakdown.gasDistributionFee)}</p>
+                     <p className="text-xs text-slate-400 mb-1">Fixed: {formatFullCurrency(bill.breakdown.gasDistributionFee)}</p>
+                     <p className="text-sm font-bold text-slate-900">{formatFullCurrency(bill.breakdown.gasCost + bill.breakdown.gasDistributionFee)}</p>
                   </div>
                 </div>
 
@@ -154,7 +166,7 @@ const History: React.FC<HistoryProps> = ({ user, currentObject }) => {
                       </span>
                     </div>
                     <div className="text-right border-t border-slate-50 pt-2 mt-auto">
-                      <p className="text-sm font-bold text-slate-900">{formatCurrency(rec.cost)}</p>
+                      <p className="text-sm font-bold text-slate-900">{formatFullCurrency(rec.cost)}</p>
                     </div>
                   </div>
                 ))}

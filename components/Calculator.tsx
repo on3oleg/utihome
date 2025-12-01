@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { TariffRates, ConsumptionData, CostBreakdown, DEFAULT_TARIFFS, User, UserObject, CustomBillRecord } from '../types';
 import { getTariffs, saveBill, saveTariffs } from '../services/db';
-import { Zap, Droplets, Flame, Save, Loader2, AlertCircle, ArrowRight, Layers, BoxSelect } from 'lucide-react';
+import { Zap, Droplets, Flame, Save, Loader2, AlertCircle, ArrowRight, Layers, BoxSelect, CheckCircle2, Pencil } from 'lucide-react';
 
 interface CalculatorProps {
   user: User;
@@ -23,8 +23,17 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
     gas: '',
   });
 
+  // Editable Fixed Fees State
+  const [fixedFees, setFixedFees] = useState({
+    water: '',
+    gas: '',
+  });
+
   // Custom Readings Inputs (Dynamic key: fieldId -> value string)
   const [customReadings, setCustomReadings] = useState<Record<string, string>>({});
+  
+  // Custom Fixed Fee Overrides (Dynamic key: fieldId -> value string)
+  const [customFeeOverrides, setCustomFeeOverrides] = useState<Record<string, string>>({});
 
   // Calculated Consumption
   const [consumption, setConsumption] = useState<ConsumptionData>({
@@ -72,8 +81,21 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
             }
           };
           setRates(mergedData);
+          
+          // Initialize Inputs
           setCurrentReadings({ electricity: '', water: '', gas: '' });
+          setFixedFees({
+            water: mergedData.waterSubscriptionFee.toString(),
+            gas: mergedData.gasDistributionFee.toString()
+          });
+          
+          // Initialize Custom inputs
           setCustomReadings({});
+          const initialCustomFees: Record<string, string> = {};
+          mergedData.customFields.forEach(f => {
+            if (f.type === 'fee') initialCustomFees[f.id] = f.price.toString();
+          });
+          setCustomFeeOverrides(initialCustomFees);
         }
       } catch (err) {
         console.error("Error loading tariffs:", err);
@@ -100,8 +122,10 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
     const elecCost = elecCons * rates.electricityRate;
     const waterCost = waterCons * rates.waterRate;
     const gasCost = gasCons * rates.gasRate;
-    const waterFixed = rates.waterSubscriptionFee;
-    const gasFixed = rates.gasDistributionFee;
+    
+    // Use editable fixed fees
+    const waterFixed = parseFloat(fixedFees.water) || 0;
+    const gasFixed = parseFloat(fixedFees.gas) || 0;
 
     setBreakdown({
       electricityCost: elecCost,
@@ -120,7 +144,8 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
       let cons = 0;
 
       if (field.type === 'fee') {
-        cost = field.price;
+        // Use editable custom fee
+        cost = parseFloat(customFeeOverrides[field.id]) || 0;
         records.push({
           fieldId: field.id,
           name: field.name,
@@ -147,15 +172,23 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
     setCustomBillRecords(records);
     setTotalCost(elecCost + waterCost + waterFixed + gasCost + gasFixed + customTotal);
 
-  }, [currentReadings, customReadings, rates]);
+  }, [currentReadings, customReadings, fixedFees, customFeeOverrides, rates]);
 
   const handleInputChange = (field: keyof typeof currentReadings, value: string) => {
     setCurrentReadings(prev => ({ ...prev, [field]: value }));
     setError(null);
   };
 
+  const handleFixedFeeChange = (field: keyof typeof fixedFees, value: string) => {
+    setFixedFees(prev => ({ ...prev, [field]: value }));
+  };
+
   const handleCustomReadingChange = (id: string, value: string) => {
     setCustomReadings(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleCustomFeeOverrideChange = (id: string, value: string) => {
+    setCustomFeeOverrides(prev => ({ ...prev, [id]: value }));
   };
 
   const handleSave = async () => {
@@ -207,6 +240,7 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
       setRates(newRates);
       setCurrentReadings({ electricity: '', water: '', gas: '' });
       setCustomReadings({});
+      // Reset fee overrides to defaults from rates after save (optional, but cleaner)
       onSaved();
     } catch (err: any) {
       console.error("Save failed:", err);
@@ -290,7 +324,7 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
                <p className="font-mono text-slate-700">{rates.lastReadings.water}</p>
             </div>
           </div>
-          <div className="flex items-end space-x-4">
+          <div className="flex items-end space-x-4 mb-4">
             <div className="flex-1">
               <label className="block text-xs font-medium text-slate-500 mb-1">Current</label>
               <input
@@ -309,6 +343,19 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
                </span>
             </div>
           </div>
+          {/* Editable Fixed Fee */}
+          <div className="pt-3 border-t border-slate-50 flex items-center justify-between">
+             <label className="text-xs font-medium text-slate-400 flex items-center"><Pencil className="h-3 w-3 mr-1" /> Fixed Fee</label>
+             <div className="flex items-center space-x-1">
+               <span className="text-xs font-bold text-slate-400">₴</span>
+               <input 
+                 type="number" step="0.01"
+                 value={fixedFees.water}
+                 onChange={(e) => handleFixedFeeChange('water', e.target.value)}
+                 className="w-20 text-right text-sm font-semibold text-slate-600 bg-slate-50 rounded px-1 focus:bg-white focus:ring-1 focus:ring-cyan-300 outline-none"
+               />
+             </div>
+          </div>
         </div>
 
         {/* Gas */}
@@ -326,7 +373,7 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
                <p className="font-mono text-slate-700">{rates.lastReadings.gas}</p>
             </div>
           </div>
-          <div className="flex items-end space-x-4">
+          <div className="flex items-end space-x-4 mb-4">
             <div className="flex-1">
               <label className="block text-xs font-medium text-slate-500 mb-1">Current</label>
               <input
@@ -344,6 +391,19 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
                  {consumption.gas} <span className="text-sm font-normal text-slate-400">m³</span>
                </span>
             </div>
+          </div>
+          {/* Editable Fixed Fee */}
+          <div className="pt-3 border-t border-slate-50 flex items-center justify-between">
+             <label className="text-xs font-medium text-slate-400 flex items-center"><Pencil className="h-3 w-3 mr-1" /> Fixed Fee</label>
+             <div className="flex items-center space-x-1">
+               <span className="text-xs font-bold text-slate-400">₴</span>
+               <input 
+                 type="number" step="0.01"
+                 value={fixedFees.gas}
+                 onChange={(e) => handleFixedFeeChange('gas', e.target.value)}
+                 className="w-20 text-right text-sm font-semibold text-slate-600 bg-slate-50 rounded px-1 focus:bg-white focus:ring-1 focus:ring-orange-300 outline-none"
+               />
+             </div>
           </div>
         </div>
 
@@ -391,6 +451,31 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
             </div>
            );
         })}
+
+        {/* Fixed Fee Fields Display (Editable) */}
+        {rates.customFields.filter(f => f.type === 'fee').map(field => (
+          <div key={field.id} className="bg-white p-5 rounded-xl shadow-sm border border-slate-100 transition-all hover:shadow-md flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-slate-100 rounded-lg text-slate-600"><BoxSelect className="h-5 w-5" /></div>
+              <div>
+                <h3 className="font-semibold text-slate-700">{field.name}</h3>
+                <p className="text-xs text-slate-400 flex items-center">
+                   Fixed Monthly Fee
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100">
+               <span className="text-sm font-bold text-indigo-600">₴</span>
+               <input 
+                 type="number" step="0.01"
+                 value={customFeeOverrides[field.id] || ''}
+                 onChange={(e) => handleCustomFeeOverrideChange(field.id, e.target.value)}
+                 className="w-20 text-right text-lg font-bold text-indigo-700 bg-transparent focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-300 rounded px-1"
+               />
+               <CheckCircle2 className="h-4 w-4 text-indigo-400 ml-1" />
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Results Section */}
@@ -409,11 +494,11 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
             <span className="font-medium text-slate-900">{formatCurrency(breakdown.electricityCost)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <div className="flex items-center text-slate-600"><Droplets className="h-4 w-4 mr-2 text-cyan-500"/> Water <span className="text-xs text-slate-400 ml-1">(+ fixed)</span></div>
+            <div className="flex items-center text-slate-600"><Droplets className="h-4 w-4 mr-2 text-cyan-500"/> Water <span className="text-xs text-slate-400 ml-1">(+ {formatCurrency(breakdown.waterSubscriptionFee)} fixed)</span></div>
             <span className="font-medium text-slate-900">{formatCurrency(breakdown.waterCost + breakdown.waterSubscriptionFee)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <div className="flex items-center text-slate-600"><Flame className="h-4 w-4 mr-2 text-orange-500"/> Gas <span className="text-xs text-slate-400 ml-1">(+ fixed)</span></div>
+            <div className="flex items-center text-slate-600"><Flame className="h-4 w-4 mr-2 text-orange-500"/> Gas <span className="text-xs text-slate-400 ml-1">(+ {formatCurrency(breakdown.gasDistributionFee)} fixed)</span></div>
             <span className="font-medium text-slate-900">{formatCurrency(breakdown.gasCost + breakdown.gasDistributionFee)}</span>
           </div>
 
