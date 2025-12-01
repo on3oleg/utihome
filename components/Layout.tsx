@@ -1,14 +1,17 @@
+
 import React, { useState } from 'react';
-import { ViewState } from '../types';
-import { Calculator, History, Settings, Zap, Menu, X } from 'lucide-react';
+import { ViewState, User } from '../types';
+import { Calculator, History, Settings, Zap, Menu, X, LogOut, User as UserIcon } from 'lucide-react';
 
 interface LayoutProps {
+  user: User;
   currentView: ViewState;
   onChangeView: (view: ViewState) => void;
+  onLogout: () => void;
   children: React.ReactNode;
 }
 
-const Layout: React.FC<LayoutProps> = ({ currentView, onChangeView, children }) => {
+const Layout: React.FC<LayoutProps> = ({ user, currentView, onChangeView, onLogout, children }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleNavClick = (view: ViewState) => {
@@ -50,6 +53,14 @@ const Layout: React.FC<LayoutProps> = ({ currentView, onChangeView, children }) 
                 <span>{item.label}</span>
               </button>
             ))}
+            <div className="w-px h-6 bg-indigo-500 mx-2"></div>
+            <button 
+              onClick={onLogout}
+              className="flex items-center space-x-1 px-3 py-2 rounded-full text-sm font-medium text-indigo-100 hover:bg-indigo-500 hover:text-white transition-colors"
+              title="Logout"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </nav>
 
           {/* Mobile Menu Button */}
@@ -65,6 +76,15 @@ const Layout: React.FC<LayoutProps> = ({ currentView, onChangeView, children }) 
         {/* Mobile Navigation Dropdown */}
         {isMobileMenuOpen && (
           <div className="md:hidden absolute top-16 left-0 right-0 bg-white shadow-xl border-t border-slate-100 animate-in slide-in-from-top-2 duration-200 z-50">
+            <div className="p-4 border-b border-slate-100 flex items-center space-x-3 bg-slate-50">
+               <div className="bg-indigo-100 p-2 rounded-full">
+                 <UserIcon className="h-5 w-5 text-indigo-600" />
+               </div>
+               <div className="overflow-hidden">
+                 <p className="text-sm font-bold text-slate-900 truncate">{user.email}</p>
+                 <p className="text-xs text-slate-500">Logged in</p>
+               </div>
+            </div>
             <div className="p-2 space-y-1">
               {navItems.map((item) => (
                 <button
@@ -80,6 +100,17 @@ const Layout: React.FC<LayoutProps> = ({ currentView, onChangeView, children }) 
                   <span>{item.label}</span>
                 </button>
               ))}
+              <div className="border-t border-slate-100 my-1"></div>
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  onLogout();
+                }}
+                className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+              >
+                <LogOut className="h-5 w-5" />
+                <span>Sign Out</span>
+              </button>
             </div>
           </div>
         )}

@@ -1,14 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
-import { TariffRates, ConsumptionData, CostBreakdown, DEFAULT_TARIFFS } from '../types';
+import { TariffRates, ConsumptionData, CostBreakdown, DEFAULT_TARIFFS, User } from '../types';
 import { getTariffs, saveBill, saveTariffs } from '../services/db';
 import { Zap, Droplets, Flame, Save, Loader2, AlertCircle, ArrowRight } from 'lucide-react';
 
 interface CalculatorProps {
+  user: User;
   onSaved: () => void;
 }
 
-const Calculator: React.FC<CalculatorProps> = ({ onSaved }) => {
+const Calculator: React.FC<CalculatorProps> = ({ user, onSaved }) => {
   const [rates, setRates] = useState<TariffRates>(DEFAULT_TARIFFS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -44,11 +45,12 @@ const Calculator: React.FC<CalculatorProps> = ({ onSaved }) => {
     return isNaN(num) ? fallback : num;
   };
 
-  // Load tariffs and last readings on mount
+  // Load tariffs and last readings on mount or user change
   useEffect(() => {
     const fetchRates = async () => {
       try {
-        const data = await getTariffs();
+        setLoading(true);
+        const data = await getTariffs(user.id);
         if (data) {
           // Ensure structure compatibility if old data exists and force types to Number
           const mergedData: TariffRates = {
@@ -75,7 +77,7 @@ const Calculator: React.FC<CalculatorProps> = ({ onSaved }) => {
       }
     };
     fetchRates();
-  }, []);
+  }, [user.id]);
 
   // Calculate consumption and costs
   useEffect(() => {
@@ -111,9 +113,6 @@ const Calculator: React.FC<CalculatorProps> = ({ onSaved }) => {
       gasDistributionFee: gasFixed
     });
 
-    // Total = Usage costs + Fixed fees
-    // Note: You might want to only charge fixed fees if there is 'usage' or just always. 
-    // Standard utility practice is fixed fees apply regardless of usage.
     setTotalCost(elecCost + waterCost + waterFixed + gasCost + gasFixed);
   }, [currentReadings, rates]);
 
@@ -146,7 +145,7 @@ const Calculator: React.FC<CalculatorProps> = ({ onSaved }) => {
         totalCost: safeNumber(totalCost)
       };
 
-      await saveBill(billData);
+      await saveBill(user.id, billData);
 
       const newReadings = {
         electricity: currentReadings.electricity ? safeNumber(currentReadings.electricity) : rates.lastReadings.electricity,
@@ -159,7 +158,7 @@ const Calculator: React.FC<CalculatorProps> = ({ onSaved }) => {
         lastReadings: newReadings
       };
 
-      await saveTariffs(newRates);
+      await saveTariffs(user.id, newRates);
       
       setRates(newRates);
       setCurrentReadings({ electricity: '', water: '', gas: '' });

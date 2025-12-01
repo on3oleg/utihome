@@ -1,22 +1,26 @@
 
 import React, { useEffect, useState } from 'react';
-import { BillRecord } from '../types';
+import { BillRecord, User } from '../types';
 import { subscribeToHistory } from '../services/db';
 import { Loader2, Calendar, ChevronDown, ChevronUp, Zap, Droplets, Flame, TrendingUp } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
-const History: React.FC = () => {
+interface HistoryProps {
+  user: User;
+}
+
+const History: React.FC<HistoryProps> = ({ user }) => {
   const [bills, setBills] = useState<BillRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsubscribe = subscribeToHistory((data) => {
+    const unsubscribe = subscribeToHistory(user.id, (data) => {
       setBills(data);
       setLoading(false);
     });
     return unsubscribe;
-  }, []);
+  }, [user.id]);
 
   const toggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);

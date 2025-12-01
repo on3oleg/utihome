@@ -1,10 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
-import { TariffRates, DEFAULT_TARIFFS } from '../types';
+import { TariffRates, DEFAULT_TARIFFS, User } from '../types';
 import { getTariffs, saveTariffs } from '../services/db';
 import { Save, Loader2, CheckCircle2, Gauge, Coins } from 'lucide-react';
 
-const Settings: React.FC = () => {
+interface SettingsProps {
+  user: User;
+}
+
+const Settings: React.FC<SettingsProps> = ({ user }) => {
   const [rates, setRates] = useState<TariffRates>(DEFAULT_TARIFFS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -13,7 +17,7 @@ const Settings: React.FC = () => {
   useEffect(() => {
     const fetchRates = async () => {
       try {
-        const data = await getTariffs();
+        const data = await getTariffs(user.id);
         if (data) {
            const mergedData = {
             ...DEFAULT_TARIFFS,
@@ -32,7 +36,7 @@ const Settings: React.FC = () => {
       }
     };
     fetchRates();
-  }, []);
+  }, [user.id]);
 
   const handleRateChange = (field: keyof TariffRates, value: string) => {
     setRates(prev => ({ ...prev, [field]: parseFloat(value) || 0 }));
@@ -54,7 +58,7 @@ const Settings: React.FC = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      await saveTariffs(rates);
+      await saveTariffs(user.id, rates);
       setMessage("Settings updated successfully!");
       setTimeout(() => setMessage(null), 3000);
     } catch (err) {

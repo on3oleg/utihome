@@ -1,4 +1,9 @@
 
+export interface User {
+  id: number;
+  email: string;
+}
+
 export interface TariffRates {
   electricityRate: number; // Price per kWh
   waterRate: number;       // Price per m³
@@ -28,6 +33,7 @@ export interface CostBreakdown {
 
 export interface BillRecord {
   id?: string;
+  userId?: number;
   date: number; // Unix timestamp (milliseconds)
   electricityConsumption: number;
   waterConsumption: number;
