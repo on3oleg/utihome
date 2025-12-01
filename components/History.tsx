@@ -1,26 +1,29 @@
 
 import React, { useEffect, useState } from 'react';
-import { BillRecord, User } from '../types';
+import { BillRecord, User, UserObject } from '../types';
 import { subscribeToHistory } from '../services/db';
 import { Loader2, Calendar, ChevronDown, ChevronUp, Zap, Droplets, Flame, TrendingUp } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 interface HistoryProps {
   user: User;
+  currentObject: UserObject;
 }
 
-const History: React.FC<HistoryProps> = ({ user }) => {
+const History: React.FC<HistoryProps> = ({ user, currentObject }) => {
   const [bills, setBills] = useState<BillRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsubscribe = subscribeToHistory(user.id, (data) => {
+    setLoading(true);
+    // SUBSCRIBE TO OBJECT ID
+    const unsubscribe = subscribeToHistory(currentObject.id, (data) => {
       setBills(data);
       setLoading(false);
     });
     return unsubscribe;
-  }, [user.id]);
+  }, [currentObject.id]);
 
   const toggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
@@ -45,7 +48,9 @@ const History: React.FC<HistoryProps> = ({ user }) => {
             <TrendingUp className="h-10 w-10 text-slate-400" />
         </div>
         <h3 className="text-lg font-bold text-slate-700">No History Yet</h3>
-        <p className="text-slate-500 mt-2 max-w-xs mx-auto">Calculate and save your first bill to see your tracking history here.</p>
+        <p className="text-slate-500 mt-2 max-w-xs mx-auto">
+          Calculate and save your first bill for <strong>{currentObject.name}</strong> to see tracking here.
+        </p>
       </div>
     );
   }
@@ -59,6 +64,11 @@ const History: React.FC<HistoryProps> = ({ user }) => {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       
+      <div className="flex items-center space-x-2 text-slate-500 text-sm">
+        <span>History for:</span>
+        <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">{currentObject.name}</span>
+      </div>
+
       {/* Chart Section */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
         <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-6">Cost Trend</h3>

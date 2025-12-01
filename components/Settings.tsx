@@ -1,14 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
-import { TariffRates, DEFAULT_TARIFFS, User } from '../types';
+import { TariffRates, DEFAULT_TARIFFS, User, UserObject } from '../types';
 import { getTariffs, saveTariffs } from '../services/db';
 import { Save, Loader2, CheckCircle2, Gauge, Coins } from 'lucide-react';
 
 interface SettingsProps {
   user: User;
+  currentObject: UserObject;
 }
 
-const Settings: React.FC<SettingsProps> = ({ user }) => {
+const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
   const [rates, setRates] = useState<TariffRates>(DEFAULT_TARIFFS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -17,7 +18,9 @@ const Settings: React.FC<SettingsProps> = ({ user }) => {
   useEffect(() => {
     const fetchRates = async () => {
       try {
-        const data = await getTariffs(user.id);
+        setLoading(true);
+        // FETCH BY OBJECT ID
+        const data = await getTariffs(currentObject.id);
         if (data) {
            const mergedData = {
             ...DEFAULT_TARIFFS,
@@ -36,7 +39,7 @@ const Settings: React.FC<SettingsProps> = ({ user }) => {
       }
     };
     fetchRates();
-  }, [user.id]);
+  }, [currentObject.id]);
 
   const handleRateChange = (field: keyof TariffRates, value: string) => {
     setRates(prev => ({ ...prev, [field]: parseFloat(value) || 0 }));
@@ -58,7 +61,8 @@ const Settings: React.FC<SettingsProps> = ({ user }) => {
     e.preventDefault();
     setSaving(true);
     try {
-      await saveTariffs(user.id, rates);
+      // SAVE BY OBJECT ID
+      await saveTariffs(currentObject.id, rates);
       setMessage("Settings updated successfully!");
       setTimeout(() => setMessage(null), 3000);
     } catch (err) {
@@ -79,6 +83,11 @@ const Settings: React.FC<SettingsProps> = ({ user }) => {
   return (
     <div className="max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
       
+      <div className="flex items-center space-x-2 text-slate-500 text-sm mb-4">
+        <span>Settings for:</span>
+        <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">{currentObject.name}</span>
+      </div>
+
       <form onSubmit={handleSave} className="space-y-6">
 
         {/* Tariffs Section */}

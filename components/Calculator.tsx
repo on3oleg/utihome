@@ -1,15 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
-import { TariffRates, ConsumptionData, CostBreakdown, DEFAULT_TARIFFS, User } from '../types';
+import { TariffRates, ConsumptionData, CostBreakdown, DEFAULT_TARIFFS, User, UserObject } from '../types';
 import { getTariffs, saveBill, saveTariffs } from '../services/db';
 import { Zap, Droplets, Flame, Save, Loader2, AlertCircle, ArrowRight } from 'lucide-react';
 
 interface CalculatorProps {
   user: User;
+  currentObject: UserObject;
   onSaved: () => void;
 }
 
-const Calculator: React.FC<CalculatorProps> = ({ user, onSaved }) => {
+const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved }) => {
   const [rates, setRates] = useState<TariffRates>(DEFAULT_TARIFFS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -45,22 +46,21 @@ const Calculator: React.FC<CalculatorProps> = ({ user, onSaved }) => {
     return isNaN(num) ? fallback : num;
   };
 
-  // Load tariffs and last readings on mount or user change
+  // Load tariffs and last readings on mount or Object change
   useEffect(() => {
     const fetchRates = async () => {
       try {
         setLoading(true);
-        const data = await getTariffs(user.id);
+        // FETCH BY OBJECT ID, NOT USER ID
+        const data = await getTariffs(currentObject.id);
         if (data) {
-          // Ensure structure compatibility if old data exists and force types to Number
+          // Ensure structure compatibility
           const mergedData: TariffRates = {
             electricityRate: safeNumber(data.electricityRate, DEFAULT_TARIFFS.electricityRate),
             waterRate: safeNumber(data.waterRate, DEFAULT_TARIFFS.waterRate),
             gasRate: safeNumber(data.gasRate, DEFAULT_TARIFFS.gasRate),
-            // Load fixed fees or default
             waterSubscriptionFee: safeNumber(data.waterSubscriptionFee, DEFAULT_TARIFFS.waterSubscriptionFee),
             gasDistributionFee: safeNumber(data.gasDistributionFee, DEFAULT_TARIFFS.gasDistributionFee),
-            
             lastReadings: {
               electricity: safeNumber(data.lastReadings?.electricity, DEFAULT_TARIFFS.lastReadings.electricity),
               water: safeNumber(data.lastReadings?.water, DEFAULT_TARIFFS.lastReadings.water),
@@ -68,6 +68,8 @@ const Calculator: React.FC<CalculatorProps> = ({ user, onSaved }) => {
             }
           };
           setRates(mergedData);
+          // Reset inputs when switching objects
+          setCurrentReadings({ electricity: '', water: '', gas: '' });
         }
       } catch (err) {
         console.error("Error loading tariffs:", err);
@@ -77,7 +79,7 @@ const Calculator: React.FC<CalculatorProps> = ({ user, onSaved }) => {
       }
     };
     fetchRates();
-  }, [user.id]);
+  }, [currentObject.id]);
 
   // Calculate consumption and costs
   useEffect(() => {
@@ -145,7 +147,8 @@ const Calculator: React.FC<CalculatorProps> = ({ user, onSaved }) => {
         totalCost: safeNumber(totalCost)
       };
 
-      await saveBill(user.id, billData);
+      // Save Bill linked to Object ID
+      await saveBill(currentObject.id, user.id, billData);
 
       const newReadings = {
         electricity: currentReadings.electricity ? safeNumber(currentReadings.electricity) : rates.lastReadings.electricity,
@@ -158,7 +161,8 @@ const Calculator: React.FC<CalculatorProps> = ({ user, onSaved }) => {
         lastReadings: newReadings
       };
 
-      await saveTariffs(user.id, newRates);
+      // Update Tariffs/Readings for Object ID
+      await saveTariffs(currentObject.id, newRates);
       
       setRates(newRates);
       setCurrentReadings({ electricity: '', water: '', gas: '' });
@@ -188,6 +192,11 @@ const Calculator: React.FC<CalculatorProps> = ({ user, onSaved }) => {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       
+      <div className="flex items-center space-x-2 text-slate-500 text-sm">
+        <span>Calculating for:</span>
+        <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">{currentObject.name}</span>
+      </div>
+
       {(error || hasMissingRates) && (
         <div className={`border-l-4 p-4 rounded-md shadow-sm ${error ? 'bg-red-50 border-red-500' : 'bg-amber-50 border-amber-500'}`}>
           <div className="flex">
