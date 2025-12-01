@@ -1,4 +1,4 @@
-
+import localforage from 'localforage';
 import { TariffRates, BillRecord, DEFAULT_TARIFFS, User, UserObject } from "../types";
 
 // Type definition for sql.js
@@ -10,41 +10,33 @@ declare global {
 
 let db: any = null;
 let initPromise: Promise<void> | null = null;
-const DB_STORAGE_KEY = 'utiltrack_sqlite_db';
-const SCHEMA_VERSION = 3; // Incremented for Object support
+const DB_STORAGE_KEY = 'utihome_db_v1'; 
+
+// Config localforage for IndexedDB storage
+localforage.config({
+  name: 'UtiHome',
+  storeName: 'database'
+});
 
 // Observer for history changes
 const listeners: ((bills: BillRecord[]) => void)[] = [];
 
-// Base64 helpers for saving binary DB to localStorage
-const toBase64 = (u8: Uint8Array): string => {
-  let binary = '';
-  const len = u8.byteLength;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(u8[i]);
-  }
-  return btoa(binary);
-};
-
-const fromBase64 = (str: string): Uint8Array => {
-  const binaryString = atob(str);
-  const len = binaryString.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes;
-};
-
+// Debounce helper for persistence to avoid thrashing disk
+let saveTimeout: any = null;
 const persistDB = () => {
   if (!db) return;
-  try {
-    const data = db.export();
-    const str = toBase64(data);
-    localStorage.setItem(DB_STORAGE_KEY, str);
-  } catch (e) {
-    console.error("Failed to save DB to localStorage. Quota might be exceeded.", e);
-  }
+  
+  if (saveTimeout) clearTimeout(saveTimeout);
+  
+  saveTimeout = setTimeout(async () => {
+    try {
+      const data = db.export();
+      // localforage handles Uint8Array natively
+      await localforage.setItem(DB_STORAGE_KEY, data);
+    } catch (e) {
+      console.error("Failed to persist DB:", e);
+    }
+  }, 500);
 };
 
 const notifyListeners = async (objectId: number) => {
@@ -60,18 +52,21 @@ const _initializeDB = async () => {
       locateFile: (file: string) => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
     });
 
-    const saved = localStorage.getItem(DB_STORAGE_KEY);
-    if (saved) {
-      try {
-        const u8 = fromBase64(saved);
-        db = new SQL.Database(u8);
-      } catch (e) {
-        console.error("Failed to load existing DB, creating new one", e);
-        db = new SQL.Database();
+    let dbInstance = null;
+    try {
+      // Load binary data directly from IndexedDB
+      const saved = await localforage.getItem<Uint8Array>(DB_STORAGE_KEY);
+      if (saved) {
+        dbInstance = new SQL.Database(saved);
       }
-    } else {
-      db = new SQL.Database();
+    } catch (e) {
+      console.error("Failed to load existing DB, starting fresh", e);
     }
+
+    if (!dbInstance) {
+      dbInstance = new SQL.Database();
+    }
+    db = dbInstance;
 
     // --- Schema Migration & Setup ---
 
@@ -84,7 +79,7 @@ const _initializeDB = async () => {
       );
     `);
 
-    // 2. Objects Table (New)
+    // 2. Objects Table
     db.run(`
       CREATE TABLE IF NOT EXISTS objects (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -95,8 +90,6 @@ const _initializeDB = async () => {
     `);
 
     // 3. Tariffs Table
-    // Originally id=userId. Now id=objectId.
-    // We keep the structure: id (PK), data (TEXT).
     db.run(`
       CREATE TABLE IF NOT EXISTS tariffs (
         id INTEGER PRIMARY KEY,
@@ -109,31 +102,27 @@ const _initializeDB = async () => {
       CREATE TABLE IF NOT EXISTS bills (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
+        object_id INTEGER,
         date INTEGER,
         totalCost REAL,
         data TEXT
       );
     `);
     
-    // Add object_id column to bills if it doesn't exist
+    // Ensure object_id column exists (migration for older versions)
     try {
       db.exec("SELECT object_id FROM bills LIMIT 1");
     } catch (e) {
       try {
         db.run("ALTER TABLE bills ADD COLUMN object_id INTEGER");
-        // Backfill existing bills to link to object_id 0 or null for now
       } catch(alterErr) {
         // Ignore if already exists
       }
     }
 
     // --- Seed Default User & Migration Logic ---
-    const checkUser = db.exec("SELECT id, email FROM users WHERE email = 'on3oleg@gmail.com'");
-    
-    if (checkUser.length === 0) {
-      // Create User if not exists
-      db.run("INSERT INTO users (email, password) VALUES (?, ?)", ['on3oleg@gmail.com', '123456']);
-    }
+    // Use INSERT OR IGNORE to avoid constraint errors on reload
+    db.run("INSERT OR IGNORE INTO users (id, email, password) VALUES (1, 'on3oleg@gmail.com', '123456')");
 
     // --- Specific Migration for on3oleg@gmail.com ---
     const userRes = db.exec("SELECT id FROM users WHERE email = 'on3oleg@gmail.com'");
@@ -147,14 +136,17 @@ const _initializeDB = async () => {
       if (objCount === 0) {
         console.log("Migrating on3oleg data to new objects...");
 
-        // 1. Retrieve existing tariff data for this user (stored under ID = userId in previous version)
+        // 1. Retrieve existing tariff data if any
         let existingTariffs = DEFAULT_TARIFFS;
-        const oldTariffStmt = db.prepare("SELECT data FROM tariffs WHERE id = ?");
-        oldTariffStmt.bind([userId]);
-        if (oldTariffStmt.step()) {
-           existingTariffs = JSON.parse(oldTariffStmt.get()[0] as string);
-        }
-        oldTariffStmt.free();
+        try {
+            const oldTariffStmt = db.prepare("SELECT data FROM tariffs WHERE id = ?");
+            oldTariffStmt.bind([userId]);
+            if (oldTariffStmt.step()) {
+               const raw = oldTariffStmt.get()[0];
+               if (typeof raw === 'string') existingTariffs = JSON.parse(raw);
+            }
+            oldTariffStmt.free();
+        } catch(e) { /* ignore */ }
 
         // 2. Create "Home Bucha"
         db.run("INSERT INTO objects (user_id, name, description) VALUES (?, ?, ?)", [userId, "Home Bucha", "Primary Residence"]);
@@ -166,16 +158,15 @@ const _initializeDB = async () => {
         const krIdRes = db.exec("SELECT last_insert_rowid()");
         const krId = krIdRes[0].values[0][0] as number;
 
-        // 4. Copy rates to both objects
-        // We use REPLACE to overwrite if something weird exists, but technically these are new IDs
+        // 4. Copy rates to both objects using INSERT OR REPLACE
         const insertRate = db.prepare("INSERT OR REPLACE INTO tariffs (id, data) VALUES (?, ?)");
         const rateString = JSON.stringify(existingTariffs);
         
         insertRate.run([buchaId, rateString]);
-        insertRate.run([krId, rateString]); // Copy same rates to KR
+        insertRate.run([krId, rateString]); 
         insertRate.free();
 
-        // 5. Update any existing bills for this user to belong to "Home Bucha" (Default)
+        // 5. Update any existing bills to link to the first object
         db.run(`UPDATE bills SET object_id = ${buchaId} WHERE user_id = ${userId} AND (object_id IS NULL OR object_id = 0)`);
       }
     }
@@ -193,12 +184,19 @@ export const ensureInitialized = async () => {
     initPromise = _initializeDB();
   }
   await initPromise;
+  
+  // Safety check: if db is still null (rare race condition), try once more
+  if (!db) {
+      initPromise = _initializeDB();
+      await initPromise;
+  }
 };
 
 // --- Auth Services ---
 
 export const loginUser = async (email: string, password: string): Promise<User | null> => {
   await ensureInitialized();
+  if (!db) return null;
   const stmt = db.prepare("SELECT id, email FROM users WHERE email = ? AND password = ?");
   stmt.bind([email, password]);
   if (stmt.step()) {
@@ -275,7 +273,6 @@ export const getTariffs = async (objectId: number): Promise<TariffRates | null> 
   if (!db) return null;
 
   try {
-    // Tariffs are now keyed by object_id in the 'id' column
     const stmt = db.prepare("SELECT data FROM tariffs WHERE id = ?");
     stmt.bind([objectId]);
     
@@ -307,7 +304,6 @@ export const saveBill = async (objectId: number, userId: number, bill: Omit<Bill
   if (!db) throw new Error("Database not initialized");
 
   const timestamp = bill.date; 
-  // Store object_id in the JSON blob and the column
   const billWithObject = { ...bill, objectId };
 
   const stmt = db.prepare("INSERT INTO bills (user_id, object_id, date, totalCost, data) VALUES (?, ?, ?, ?, ?)");
