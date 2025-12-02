@@ -4,5 +4,9 @@ import react from '@vitejs/plugin-react';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: './', // CRITICAL: Ensures assets load correctly in Android WebView
+  base: './', // CRITICAL: Ensures assets load correctly in Android WebView and subpath deployments
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+  }
 });

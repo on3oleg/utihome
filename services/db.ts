@@ -48,6 +48,11 @@ const _initializeDB = async () => {
   if (db) return;
 
   try {
+    // Check if SQL.js script loaded
+    if (typeof window.initSqlJs !== 'function') {
+      throw new Error("SQL.js library not loaded. Please check your internet connection.");
+    }
+
     const SQL = await window.initSqlJs({
       locateFile: (file: string) => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
     });
