@@ -353,3 +353,42 @@ export const subscribeToHistory = (objectId: number, callback: (bills: BillRecor
     }
   };
 };
+
+// --- Session Services (Persist Login) ---
+
+const SESSION_KEY = 'utihome_session_user_v1';
+
+export const saveSession = async (user: User): Promise<void> => {
+  try {
+    // Save user session with expiration
+    await localforage.setItem(SESSION_KEY, {
+      user,
+      createdAt: Date.now(),
+      expiresAt: Date.now() + (365 * 24 * 60 * 60 * 1000) // 365 days
+    });
+  } catch (e) {
+    console.error("Failed to save session", e);
+  }
+};
+
+export const restoreSession = async (): Promise<User | null> => {
+  try {
+    const session = await localforage.getItem<{ user: User, expiresAt: number }>(SESSION_KEY);
+    if (!session || !session.user) return null;
+    
+    // Check expiration
+    if (session.expiresAt && Date.now() > session.expiresAt) {
+      await localforage.removeItem(SESSION_KEY);
+      return null;
+    }
+    
+    return session.user;
+  } catch (e) {
+    console.error("Failed to restore session", e);
+    return null;
+  }
+};
+
+export const clearSession = async (): Promise<void> => {
+  await localforage.removeItem(SESSION_KEY);
+};

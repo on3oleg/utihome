@@ -70,7 +70,7 @@ export interface BillRecord {
   totalCost: number;
 }
 
-export type ViewState = 'calculator' | 'history' | 'settings';
+export type ViewState = 'calculator' | 'history' | 'settings' | 'profile';
 
 export const DEFAULT_TARIFFS: TariffRates = {
   electricityRate: 4.32,
