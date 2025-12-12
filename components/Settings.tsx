@@ -17,6 +17,10 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
   const [message, setMessage] = useState<string | null>(null);
   const { t, language, setLanguage } = useLanguage();
 
+  // Local state for inputs to allow comma editing before parsing
+  // We track the raw string values for inputs
+  const [inputValues, setInputValues] = useState<Record<string, string>>({});
+
   // New Field State
   const [newFieldName, setNewFieldName] = useState('');
   const [newFieldType, setNewFieldType] = useState<'rate' | 'fee'>('fee');
@@ -24,13 +28,14 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
   const [newFieldPrice, setNewFieldPrice] = useState('');
   const [newFieldStartReading, setNewFieldStartReading] = useState('');
 
+  const sanitizeNumber = (val: string) => val.replace(',', '.');
+
   useEffect(() => {
     const fetchRates = async () => {
       try {
         setLoading(true);
         const data = await getTariffs(currentObject.id);
-        if (data) {
-           const mergedData = {
+        const mergedData = data ? {
             ...DEFAULT_TARIFFS,
             ...data,
             customFields: data.customFields || [],
@@ -38,9 +43,31 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
               ...DEFAULT_TARIFFS.lastReadings,
               ...(data.lastReadings || {})
             }
-          };
+          } : DEFAULT_TARIFFS;
+          
           setRates(mergedData);
-        }
+          
+          // Initialize input strings
+          const initials: Record<string, string> = {
+             electricityRate: mergedData.electricityRate.toString(),
+             waterRate: mergedData.waterRate.toString(),
+             waterSubscriptionFee: mergedData.waterSubscriptionFee.toString(),
+             gasRate: mergedData.gasRate.toString(),
+             gasDistributionFee: mergedData.gasDistributionFee.toString(),
+             reading_electricity: mergedData.lastReadings.electricity.toString(),
+             reading_water: mergedData.lastReadings.water.toString(),
+             reading_gas: mergedData.lastReadings.gas.toString()
+          };
+          
+          mergedData.customFields.forEach(f => {
+            initials[`custom_price_${f.id}`] = f.price.toString();
+            if (f.type === 'rate') {
+               initials[`reading_${f.id}`] = (mergedData.lastReadings[f.id] || 0).toString();
+            }
+          });
+          
+          setInputValues(initials);
+
       } catch (err) {
         console.error("Failed to load rates", err);
       } finally {
@@ -50,28 +77,41 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
     fetchRates();
   }, [currentObject.id]);
 
-  const handleRateChange = (field: keyof TariffRates, value: string) => {
-    setRates(prev => ({ ...prev, [field]: parseFloat(value) || 0 }));
+  const updateRate = (field: keyof TariffRates, rawValue: string) => {
+    const sanitized = sanitizeNumber(rawValue);
+    setInputValues(prev => ({ ...prev, [field]: sanitized }));
+    setRates(prev => ({ ...prev, [field]: parseFloat(sanitized) || 0 }));
     setMessage(null);
   };
 
-  const handleReadingChange = (field: string, value: string) => {
+  const updateReading = (field: string, rawValue: string) => {
+    const sanitized = sanitizeNumber(rawValue);
+    setInputValues(prev => ({ ...prev, [`reading_${field}`]: sanitized }));
     setRates(prev => ({
       ...prev,
       lastReadings: {
         ...prev.lastReadings,
-        [field]: parseFloat(value) || 0
+        [field]: parseFloat(sanitized) || 0
       }
     }));
     setMessage(null);
+  };
+
+  const updateCustomPrice = (id: string, rawValue: string) => {
+    const sanitized = sanitizeNumber(rawValue);
+    setInputValues(prev => ({ ...prev, [`custom_price_${id}`]: sanitized }));
+    setRates(prev => ({
+      ...prev,
+      customFields: prev.customFields.map(f => f.id === id ? { ...f, price: parseFloat(sanitized) || 0 } : f)
+    }));
   };
 
   // Custom Fields Logic
   const handleAddCustomField = () => {
     if (!newFieldName.trim()) return;
     
-    const priceVal = parseFloat(newFieldPrice) || 0;
-    const startReadingVal = parseFloat(newFieldStartReading) || 0;
+    const priceVal = parseFloat(sanitizeNumber(newFieldPrice)) || 0;
+    const startReadingVal = parseFloat(sanitizeNumber(newFieldStartReading)) || 0;
 
     const newField: CustomFieldConfig = {
       id: Date.now().toString(),
@@ -90,6 +130,12 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
       } : prev.lastReadings
     }));
 
+    setInputValues(prev => ({
+        ...prev,
+        [`custom_price_${newField.id}`]: newFieldPrice,
+        ...(newFieldType === 'rate' ? { [`reading_${newField.id}`]: newFieldStartReading } : {})
+    }));
+
     setNewFieldName('');
     setNewFieldUnit('');
     setNewFieldType('fee');
@@ -100,7 +146,7 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
   const handleDeleteCustomField = (id: string) => {
     setRates(prev => {
       const newReadings = { ...prev.lastReadings };
-      delete newReadings[id]; // Cleanup reading if exists
+      delete newReadings[id]; 
 
       return {
         ...prev,
@@ -108,13 +154,6 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
         lastReadings: newReadings
       };
     });
-  };
-
-  const handleCustomFieldPriceChange = (id: string, value: string) => {
-    setRates(prev => ({
-      ...prev,
-      customFields: prev.customFields.map(f => f.id === id ? { ...f, price: parseFloat(value) || 0 } : f)
-    }));
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -140,9 +179,9 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
   }
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10 space-y-8">
       
-      <div className="flex justify-between items-center mb-4 px-2">
+      <div className="flex justify-between items-center px-2">
         <div className="flex items-center space-x-2 text-slate-500 text-sm">
           <span>{t.settings.settingsFor}</span>
           <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">{currentObject.name}</span>
@@ -162,155 +201,221 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
         </div>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-6">
+      <form onSubmit={handleSave} className="space-y-8">
 
         {/* Standard Tariffs Section */}
-        <IonList inset className="m-0 rounded-2xl shadow-sm border border-slate-200">
-          <IonListHeader className="border-b border-slate-100 bg-slate-50 pl-4 py-2">
-             <div className="flex items-center space-x-2 my-2">
-                <Coins className="h-5 w-5 text-indigo-600" />
-                <IonLabel className="font-bold text-slate-800">{t.settings.standardTariffs}</IonLabel>
-             </div>
-          </IonListHeader>
+        <section>
+          <div className="flex items-center space-x-2 mb-4 px-1">
+             <Coins className="h-6 w-6 text-indigo-600" strokeWidth={1.5} />
+             <h3 className="text-lg font-bold text-slate-900">{t.settings.standardTariffs}</h3>
+          </div>
           
-          <IonItem>
-            <IonLabel position="stacked" className="font-bold text-slate-700">{t.calculator.electricity}</IonLabel>
-            <IonInput 
-               type="number" step="0.01" value={rates.electricityRate} 
-               onIonInput={e => handleRateChange('electricityRate', e.detail.value!)}
-               placeholder="0.00"
-            />
-            <IonNote slot="end">₴ / {t.common.units.kwh}</IonNote>
-          </IonItem>
+          <div className="space-y-4">
+            
+            {/* Electricity */}
+            <div className="bg-white p-1 rounded-xl">
+               <div className="mb-2 px-1 flex justify-between">
+                  <span className="font-bold text-slate-700">{t.calculator.electricity}</span>
+                  <span className="text-xs text-slate-400 mt-1">₴ / {t.common.units.kwh}</span>
+               </div>
+               <IonItem className="rounded-xl overflow-hidden" style={{ '--background': '#f1f5f9', '--padding-start': '16px' }}>
+                  <IonInput 
+                     type="text" inputmode="decimal"
+                     value={inputValues.electricityRate} 
+                     onIonInput={e => updateRate('electricityRate', e.detail.value!)}
+                     className="text-lg font-bold"
+                  />
+               </IonItem>
+            </div>
 
-          <IonItem>
-            <IonLabel position="stacked" className="font-bold text-slate-700">{t.settings.waterRate}</IonLabel>
-            <IonInput 
-               type="number" step="0.01" value={rates.waterRate} 
-               onIonInput={e => handleRateChange('waterRate', e.detail.value!)}
-            />
-            <IonNote slot="end">₴ / {t.common.units.m3}</IonNote>
-          </IonItem>
+            {/* Water */}
+            <div className="grid grid-cols-2 gap-4">
+               <div>
+                  <div className="mb-2 px-1 flex justify-between">
+                     <span className="font-bold text-slate-700 text-sm">{t.settings.waterRate}</span>
+                  </div>
+                  <IonItem className="rounded-xl overflow-hidden" style={{ '--background': '#f1f5f9', '--padding-start': '16px' }}>
+                     <IonInput 
+                        type="text" inputmode="decimal"
+                        value={inputValues.waterRate} 
+                        onIonInput={e => updateRate('waterRate', e.detail.value!)}
+                        className="text-lg font-bold"
+                     />
+                     <IonNote slot="end" className="text-xs">/{t.common.units.m3}</IonNote>
+                  </IonItem>
+               </div>
+               <div>
+                  <div className="mb-2 px-1 flex justify-between">
+                     <span className="font-bold text-slate-700 text-sm">{t.settings.waterSubFee}</span>
+                  </div>
+                  <IonItem className="rounded-xl overflow-hidden" style={{ '--background': '#f1f5f9', '--padding-start': '16px' }}>
+                     <IonInput 
+                        type="text" inputmode="decimal"
+                        value={inputValues.waterSubscriptionFee} 
+                        onIonInput={e => updateRate('waterSubscriptionFee', e.detail.value!)}
+                        className="text-lg font-bold"
+                     />
+                     <IonNote slot="end" className="text-xs">{t.common.units.fixed}</IonNote>
+                  </IonItem>
+               </div>
+            </div>
 
-           <IonItem>
-            <IonLabel position="stacked" className="font-bold text-slate-700">{t.settings.waterSubFee}</IonLabel>
-            <IonInput 
-               type="number" step="0.01" value={rates.waterSubscriptionFee} 
-               onIonInput={e => handleRateChange('waterSubscriptionFee', e.detail.value!)}
-            />
-             <IonNote slot="end">₴ {t.common.units.fixed}</IonNote>
-          </IonItem>
+            {/* Gas */}
+            <div className="grid grid-cols-2 gap-4">
+               <div>
+                  <div className="mb-2 px-1 flex justify-between">
+                     <span className="font-bold text-slate-700 text-sm">{t.settings.gasRate}</span>
+                  </div>
+                  <IonItem className="rounded-xl overflow-hidden" style={{ '--background': '#f1f5f9', '--padding-start': '16px' }}>
+                     <IonInput 
+                        type="text" inputmode="decimal"
+                        value={inputValues.gasRate} 
+                        onIonInput={e => updateRate('gasRate', e.detail.value!)}
+                        className="text-lg font-bold"
+                     />
+                     <IonNote slot="end" className="text-xs">/{t.common.units.m3}</IonNote>
+                  </IonItem>
+               </div>
+               <div>
+                  <div className="mb-2 px-1 flex justify-between">
+                     <span className="font-bold text-slate-700 text-sm">{t.settings.gasDistFee}</span>
+                  </div>
+                  <IonItem className="rounded-xl overflow-hidden" style={{ '--background': '#f1f5f9', '--padding-start': '16px' }}>
+                     <IonInput 
+                        type="text" inputmode="decimal"
+                        value={inputValues.gasDistributionFee} 
+                        onIonInput={e => updateRate('gasDistributionFee', e.detail.value!)}
+                        className="text-lg font-bold"
+                     />
+                     <IonNote slot="end" className="text-xs">{t.common.units.fixed}</IonNote>
+                  </IonItem>
+               </div>
+            </div>
 
-           <IonItem>
-            <IonLabel position="stacked" className="font-bold text-slate-700">{t.settings.gasRate}</IonLabel>
-            <IonInput 
-               type="number" step="0.01" value={rates.gasRate} 
-               onIonInput={e => handleRateChange('gasRate', e.detail.value!)}
-            />
-             <IonNote slot="end">₴ / {t.common.units.m3}</IonNote>
-          </IonItem>
-
-           <IonItem>
-            <IonLabel position="stacked" className="font-bold text-slate-700">{t.settings.gasDistFee}</IonLabel>
-            <IonInput 
-               type="number" step="0.01" value={rates.gasDistributionFee} 
-               onIonInput={e => handleRateChange('gasDistributionFee', e.detail.value!)}
-            />
-             <IonNote slot="end">₴ {t.common.units.fixed}</IonNote>
-          </IonItem>
-        </IonList>
+          </div>
+        </section>
 
         {/* Custom Fields Section */}
-        <IonList inset className="m-0 rounded-2xl shadow-sm border border-slate-200">
-           <IonListHeader className="border-b border-slate-100 bg-slate-50 pl-4 py-2">
-             <div className="flex items-center space-x-2 my-2">
-                <Layers className="h-5 w-5 text-indigo-600" />
-                <IonLabel className="font-bold text-slate-800">{t.settings.additionalServices}</IonLabel>
-             </div>
-          </IonListHeader>
+        <section>
+           <div className="flex items-center space-x-2 mb-4 px-1">
+             <Layers className="h-6 w-6 text-indigo-600" strokeWidth={1.5} />
+             <h3 className="text-lg font-bold text-slate-900">{t.settings.additionalServices}</h3>
+           </div>
 
-           {rates.customFields.map((field) => (
-             <IonItem key={field.id} lines="full">
-                <div className="w-full py-2">
-                   <div className="flex justify-between items-center mb-1">
-                      <span className="text-sm font-bold text-slate-700">{field.name}</span>
-                      <button type="button" onClick={() => handleDeleteCustomField(field.id)} className="text-red-400">
+           <div className="space-y-3">
+             {rates.customFields.map((field) => (
+                <div key={field.id} className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                   <div className="flex justify-between items-center mb-2">
+                      <span className="font-bold text-slate-800">{field.name}</span>
+                      <button type="button" onClick={() => handleDeleteCustomField(field.id)} className="text-red-400 bg-white p-1 rounded-full shadow-sm">
                          <Trash2 className="h-4 w-4" />
                       </button>
                    </div>
-                   <div className="flex gap-2">
+                   
+                   <div className="flex gap-3">
                       <div className="flex-1">
-                        <IonInput 
-                          label={t.settings.placeholders.price} labelPlacement="stacked"
-                          type="number" value={field.price}
-                          onIonInput={e => handleCustomFieldPriceChange(field.id, e.detail.value!)}
-                          className="bg-slate-50 rounded px-2"
-                        />
+                        <label className="text-xs text-slate-400 block mb-1">{t.settings.placeholders.price}</label>
+                        <IonItem className="rounded-xl overflow-hidden" style={{ '--background': '#ffffff', '--padding-start': '12px', '--min-height': '40px' }}>
+                           <IonInput 
+                             type="text" inputmode="decimal"
+                             value={inputValues[`custom_price_${field.id}`]}
+                             onIonInput={e => updateCustomPrice(field.id, e.detail.value!)}
+                             className="text-sm font-bold"
+                           />
+                        </IonItem>
                       </div>
+                      
                       {field.type === 'rate' && (
                         <div className="flex-1">
-                           <IonInput 
-                             label={t.settings.placeholders.current} labelPlacement="stacked"
-                             type="number" value={rates.lastReadings[field.id] || 0}
-                             onIonInput={e => handleReadingChange(field.id, e.detail.value!)}
-                             className="bg-slate-50 rounded px-2"
-                           />
+                           <label className="text-xs text-slate-400 block mb-1">{t.settings.currentReading}</label>
+                           <IonItem className="rounded-xl overflow-hidden" style={{ '--background': '#ffffff', '--padding-start': '12px', '--min-height': '40px' }}>
+                             <IonInput 
+                               type="text" inputmode="decimal"
+                               value={inputValues[`reading_${field.id}`]}
+                               onIonInput={e => updateReading(field.id, e.detail.value!)}
+                               className="text-sm font-bold"
+                             />
+                           </IonItem>
                         </div>
                       )}
                    </div>
                 </div>
-             </IonItem>
-           ))}
+             ))}
 
-            <div className="p-4 bg-slate-50">
-               <h4 className="text-sm font-bold text-slate-700 mb-3 flex items-center"><Plus className="h-4 w-4 mr-1"/> {t.settings.addService}</h4>
-               <div className="space-y-3">
-                  <input type="text" placeholder={t.settings.placeholders.serviceName} value={newFieldName} onChange={e => setNewFieldName(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"/>
-                  <select value={newFieldType} onChange={e => setNewFieldType(e.target.value as any)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white">
-                     <option value="fee">{t.settings.types.fee}</option>
-                     <option value="rate">{t.settings.types.rate}</option>
-                  </select>
-                  
-                  {newFieldType === 'fee' ? (
-                     <input type="number" placeholder={t.settings.placeholders.feeAmount} value={newFieldPrice} onChange={e => setNewFieldPrice(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"/>
-                  ) : (
-                     <div className="grid grid-cols-3 gap-2">
-                        <input type="text" placeholder={t.settings.placeholders.unit} value={newFieldUnit} onChange={e => setNewFieldUnit(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"/>
-                        <input type="number" placeholder={t.settings.placeholders.price} value={newFieldPrice} onChange={e => setNewFieldPrice(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"/>
-                        <input type="number" placeholder={t.settings.placeholders.start} value={newFieldStartReading} onChange={e => setNewFieldStartReading(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"/>
-                     </div>
-                  )}
+              <div className="p-4 bg-white rounded-2xl border border-slate-200 border-dashed">
+                 <h4 className="text-sm font-bold text-slate-700 mb-3 flex items-center"><Plus className="h-4 w-4 mr-1"/> {t.settings.addService}</h4>
+                 <div className="space-y-3">
+                    <input type="text" placeholder={t.settings.placeholders.serviceName} value={newFieldName} onChange={e => setNewFieldName(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm outline-none font-medium"/>
+                    
+                    <div className="flex gap-2">
+                       <select value={newFieldType} onChange={e => setNewFieldType(e.target.value as any)} className="w-1/2 px-4 py-3 bg-slate-50 border-none rounded-xl text-sm outline-none font-medium">
+                          <option value="fee">{t.settings.types.fee}</option>
+                          <option value="rate">{t.settings.types.rate}</option>
+                       </select>
+                       
+                       {newFieldType === 'fee' ? (
+                          <input type="text" inputMode="decimal" placeholder={t.settings.placeholders.feeAmount} value={newFieldPrice} onChange={e => setNewFieldPrice(sanitizeNumber(e.target.value))} className="w-1/2 px-4 py-3 bg-slate-50 border-none rounded-xl text-sm outline-none font-medium"/>
+                       ) : (
+                          <input type="text" placeholder={t.settings.placeholders.unit} value={newFieldUnit} onChange={e => setNewFieldUnit(e.target.value)} className="w-1/2 px-4 py-3 bg-slate-50 border-none rounded-xl text-sm outline-none font-medium"/>
+                       )}
+                    </div>
+                    
+                    {newFieldType === 'rate' && (
+                       <div className="flex gap-2">
+                          <input type="text" inputMode="decimal" placeholder={t.settings.placeholders.price} value={newFieldPrice} onChange={e => setNewFieldPrice(sanitizeNumber(e.target.value))} className="w-1/2 px-4 py-3 bg-slate-50 border-none rounded-xl text-sm outline-none font-medium"/>
+                          <input type="text" inputMode="decimal" placeholder={t.settings.placeholders.start} value={newFieldStartReading} onChange={e => setNewFieldStartReading(sanitizeNumber(e.target.value))} className="w-1/2 px-4 py-3 bg-slate-50 border-none rounded-xl text-sm outline-none font-medium"/>
+                       </div>
+                    )}
 
-                  <IonButton fill="outline" expand="block" size="small" onClick={handleAddCustomField} disabled={!newFieldName}>{t.common.add}</IonButton>
-               </div>
-            </div>
-        </IonList>
+                    <button onClick={handleAddCustomField} disabled={!newFieldName} className="w-full py-3 bg-black text-white rounded-xl font-bold text-sm mt-2 disabled:opacity-50">
+                       {t.common.add}
+                    </button>
+                 </div>
+              </div>
+           </div>
+        </section>
 
         {/* Standard Meter Readings Section */}
-        <IonList inset className="m-0 rounded-2xl shadow-sm border border-slate-200">
-           <IonListHeader className="border-b border-slate-100 bg-slate-50 pl-4 py-2">
-             <div className="flex items-center space-x-2 my-2">
-                <Gauge className="h-5 w-5 text-indigo-600" />
-                <IonLabel className="font-bold text-slate-800">{t.settings.meterReadings}</IonLabel>
-             </div>
-          </IonListHeader>
-          <IonItem>
-             <IonLabel position="stacked">{t.calculator.electricity} ({t.common.units.kwh})</IonLabel>
-             <IonInput type="number" value={rates.lastReadings.electricity} onIonInput={e => handleReadingChange('electricity', e.detail.value!)} />
-          </IonItem>
-          <IonItem>
-             <IonLabel position="stacked">{t.calculator.water} ({t.common.units.m3})</IonLabel>
-             <IonInput type="number" value={rates.lastReadings.water} onIonInput={e => handleReadingChange('water', e.detail.value!)} />
-          </IonItem>
-          <IonItem>
-             <IonLabel position="stacked">{t.calculator.gas} ({t.common.units.m3})</IonLabel>
-             <IonInput type="number" value={rates.lastReadings.gas} onIonInput={e => handleReadingChange('gas', e.detail.value!)} />
-          </IonItem>
-        </IonList>
+        <section>
+           <div className="flex items-center space-x-2 mb-4 px-1">
+             <Gauge className="h-6 w-6 text-indigo-600" strokeWidth={1.5} />
+             <h3 className="text-lg font-bold text-slate-900">{t.settings.meterReadings}</h3>
+           </div>
+           
+           <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                 <div className="w-24 text-sm font-medium text-slate-600">{t.calculator.electricity}</div>
+                 <div className="flex-1">
+                    <IonItem className="rounded-xl overflow-hidden" style={{ '--background': '#f1f5f9', '--padding-start': '16px' }}>
+                       <IonInput type="text" inputmode="decimal" value={inputValues.reading_electricity} onIonInput={e => updateReading('electricity', e.detail.value!)} className="text-lg font-bold" />
+                       <IonNote slot="end">{t.common.units.kwh}</IonNote>
+                    </IonItem>
+                 </div>
+              </div>
+              <div className="flex items-center gap-4">
+                 <div className="w-24 text-sm font-medium text-slate-600">{t.calculator.water}</div>
+                 <div className="flex-1">
+                    <IonItem className="rounded-xl overflow-hidden" style={{ '--background': '#f1f5f9', '--padding-start': '16px' }}>
+                       <IonInput type="text" inputmode="decimal" value={inputValues.reading_water} onIonInput={e => updateReading('water', e.detail.value!)} className="text-lg font-bold" />
+                       <IonNote slot="end">{t.common.units.m3}</IonNote>
+                    </IonItem>
+                 </div>
+              </div>
+              <div className="flex items-center gap-4">
+                 <div className="w-24 text-sm font-medium text-slate-600">{t.calculator.gas}</div>
+                 <div className="flex-1">
+                    <IonItem className="rounded-xl overflow-hidden" style={{ '--background': '#f1f5f9', '--padding-start': '16px' }}>
+                       <IonInput type="text" inputmode="decimal" value={inputValues.reading_gas} onIonInput={e => updateReading('gas', e.detail.value!)} className="text-lg font-bold" />
+                       <IonNote slot="end">{t.common.units.m3}</IonNote>
+                    </IonItem>
+                 </div>
+              </div>
+           </div>
+        </section>
 
-        <div className="pt-2">
+        <div className="pt-2 sticky bottom-0 bg-slate-50 pb-4">
            {message && (
-            <div className={`mb-4 p-3 rounded-lg flex items-center text-sm ${message.includes('success') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+            <div className={`mb-4 p-3 rounded-xl flex items-center text-sm ${message.includes('success') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
               {message.includes('success') && <CheckCircle2 className="h-4 w-4 mr-2" />}
               {message}
             </div>
@@ -320,10 +425,10 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
              expand="block" 
              type="submit" 
              disabled={saving} 
-             className="h-12 font-bold"
-             style={{ '--border-radius': '12px' }}
+             className="h-14 font-bold text-lg"
+             style={{ '--border-radius': '12px', '--background': '#000000', '--color': '#ffffff' }}
           >
-            {saving ? <IonSpinner /> : t.settings.saveButton}
+            {saving ? <IonSpinner name="crescent" /> : t.settings.saveButton}
           </IonButton>
         </div>
       </form>

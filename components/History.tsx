@@ -3,7 +3,7 @@ import { BillRecord, User, UserObject } from '../types';
 import { subscribeToHistory } from '../services/db';
 import { Calendar, ChevronDown, ChevronUp, Zap, Droplets, Flame, TrendingUp, Layers } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
-import { IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonSpinner } from '@ionic/react';
+import { IonSpinner } from '@ionic/react';
 import { useLanguage } from '../i18n';
 
 interface HistoryProps {
@@ -68,25 +68,23 @@ const History: React.FC<HistoryProps> = ({ user, currentObject }) => {
   });
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       
-      <IonCard className="m-0 shadow-none border border-slate-200 rounded-2xl">
-        <IonCardHeader>
-           <IonCardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wide">{t.history.costBreakdown}</IonCardTitle>
-        </IonCardHeader>
-        <IonCardContent>
+      {/* Chart Section */}
+      <section className="bg-white rounded-3xl p-4 border border-slate-100">
+         <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 px-2">{t.history.costBreakdown}</h3>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748b'}} dy={10} />
-                <YAxis tickLine={false} axisLine={false} tick={{fontSize: 12, fill: '#64748b'}} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8'}} dy={10} />
+                <YAxis tickLine={false} axisLine={false} tick={{fontSize: 12, fill: '#94a3b8'}} />
                 <Tooltip 
-                  cursor={{fill: '#f1f5f9'}}
-                  contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'}} 
+                  cursor={{fill: '#f8fafc'}}
+                  contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '12px'}} 
                   formatter={(value: number) => [formatFullCurrency(value)]} 
                 />
-                <Legend iconType="circle" wrapperStyle={{paddingTop: '20px', fontSize: '12px'}} />
+                <Legend iconType="circle" wrapperStyle={{paddingTop: '20px', fontSize: '11px', color: '#64748b'}} />
                 <Bar dataKey={t.history.electricity} stackId="a" fill="#3b82f6" radius={[0, 0, 4, 4]} />
                 <Bar dataKey={t.history.water} stackId="a" fill="#06b6d4" />
                 <Bar dataKey={t.history.gas} stackId="a" fill="#f97316" />
@@ -94,74 +92,80 @@ const History: React.FC<HistoryProps> = ({ user, currentObject }) => {
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </IonCardContent>
-      </IonCard>
+      </section>
 
-      <div className="space-y-3">
+      {/* List Section */}
+      <section className="space-y-3">
         {bills.map((bill) => (
-          <div key={bill.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300">
-            <button onClick={() => toggleExpand(bill.id!)} className="w-full flex items-center justify-between p-5 hover:bg-slate-50 transition-colors">
+          <div key={bill.id} className="bg-transparent overflow-hidden">
+            <button 
+              onClick={() => toggleExpand(bill.id!)} 
+              className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all duration-200 ${expandedId === bill.id ? 'bg-slate-50 border-slate-200' : 'bg-white border-slate-100'}`}
+            >
               <div className="flex items-center space-x-4">
-                <div className="bg-indigo-50 p-2.5 rounded-lg text-indigo-600"><Calendar className="h-5 w-5" /></div>
+                <div className={`p-3 rounded-xl ${expandedId === bill.id ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                   <Calendar className="h-5 w-5" />
+                </div>
                 <div className="text-left">
-                  <p className="font-semibold text-slate-800">{new Date(bill.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                  <p className="text-xs text-slate-500">{new Date(bill.date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</p>
+                  <p className="font-bold text-slate-800">{new Date(bill.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                  <p className="text-xs text-slate-400 font-medium">{new Date(bill.date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
-                <span className="font-bold text-slate-900 text-lg">{formatFullCurrency(bill.totalCost)}</span>
+                <span className="font-extrabold text-slate-900 text-lg">{Math.round(bill.totalCost).toLocaleString()} <span className="text-sm font-normal text-slate-400">₴</span></span>
                 {expandedId === bill.id ? <ChevronUp className="h-5 w-5 text-slate-400" /> : <ChevronDown className="h-5 w-5 text-slate-400" />}
               </div>
             </button>
 
             {expandedId === bill.id && (
-              <div className="bg-slate-50 border-t border-slate-100 p-5 grid grid-cols-1 md:grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-200">
+              <div className="pt-2 px-2 pb-4 grid grid-cols-1 gap-2 animate-in slide-in-from-top-2 duration-200">
                 
                 {/* Standard Cards */}
-                <div className="flex flex-col p-3 bg-white rounded-lg border border-slate-100">
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="flex items-center space-x-2 text-slate-600"><Zap className="h-4 w-4 text-blue-500"/><span className="text-sm font-medium">{t.calculator.electricity}</span></div>
-                    <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-500">{bill.electricityConsumption} {t.common.units.kwh}</span>
-                  </div>
-                  <div className="text-right border-t border-slate-50 pt-2 mt-auto">
-                    <p className="text-sm font-bold text-slate-900">{formatFullCurrency(bill.breakdown.electricityCost)}</p>
-                  </div>
+                <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100">
+                    <div className="flex items-center space-x-3">
+                      <Zap className="h-5 w-5 text-blue-500"/>
+                      <span className="text-sm font-bold text-slate-700">{t.calculator.electricity}</span>
+                    </div>
+                    <div className="text-right">
+                       <p className="text-sm font-bold text-slate-900">{formatFullCurrency(bill.breakdown.electricityCost)}</p>
+                       <p className="text-xs text-slate-400">{bill.electricityConsumption} {t.common.units.kwh}</p>
+                    </div>
                 </div>
 
-                <div className="flex flex-col p-3 bg-white rounded-lg border border-slate-100">
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="flex items-center space-x-2 text-slate-600"><Droplets className="h-4 w-4 text-cyan-500"/><span className="text-sm font-medium">{t.calculator.water}</span></div>
-                    <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-500">{bill.waterConsumption} {t.common.units.m3}</span>
-                  </div>
-                  <div className="text-right border-t border-slate-50 pt-2 mt-auto">
-                     <p className="text-sm font-bold text-slate-900">{formatFullCurrency(bill.breakdown.waterCost + bill.breakdown.waterSubscriptionFee)}</p>
-                  </div>
+                <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100">
+                    <div className="flex items-center space-x-3">
+                      <Droplets className="h-5 w-5 text-cyan-500"/>
+                      <span className="text-sm font-bold text-slate-700">{t.calculator.water}</span>
+                    </div>
+                    <div className="text-right">
+                       <p className="text-sm font-bold text-slate-900">{formatFullCurrency(bill.breakdown.waterCost + bill.breakdown.waterSubscriptionFee)}</p>
+                       <p className="text-xs text-slate-400">{bill.waterConsumption} {t.common.units.m3}</p>
+                    </div>
                 </div>
 
-                <div className="flex flex-col p-3 bg-white rounded-lg border border-slate-100">
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="flex items-center space-x-2 text-slate-600"><Flame className="h-4 w-4 text-orange-500"/><span className="text-sm font-medium">{t.calculator.gas}</span></div>
-                    <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-500">{bill.gasConsumption} {t.common.units.m3}</span>
-                  </div>
-                  <div className="text-right border-t border-slate-50 pt-2 mt-auto">
-                     <p className="text-sm font-bold text-slate-900">{formatFullCurrency(bill.breakdown.gasCost + bill.breakdown.gasDistributionFee)}</p>
-                  </div>
+                <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100">
+                    <div className="flex items-center space-x-3">
+                      <Flame className="h-5 w-5 text-orange-500"/>
+                      <span className="text-sm font-bold text-slate-700">{t.calculator.gas}</span>
+                    </div>
+                    <div className="text-right">
+                       <p className="text-sm font-bold text-slate-900">{formatFullCurrency(bill.breakdown.gasCost + bill.breakdown.gasDistributionFee)}</p>
+                       <p className="text-xs text-slate-400">{bill.gasConsumption} {t.common.units.m3}</p>
+                    </div>
                 </div>
 
                 {/* Custom Records */}
-                {bill.customRecords?.map(rec => (
-                   <div key={rec.fieldId} className="flex flex-col p-3 bg-white rounded-lg border border-slate-100">
-                    <div className="flex justify-between items-center mb-2">
-                      <div className="flex items-center space-x-2 text-slate-600">
-                        <Layers className="h-4 w-4 text-purple-500"/>
-                        <span className="text-sm font-medium truncate">{rec.name}</span>
-                      </div>
-                      <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-500">
-                        {rec.type === 'rate' ? `${rec.consumption} ${rec.unit}` : t.history.fixed}
-                      </span>
+                {(bill.customRecords || []).map((rec) => (
+                   <div key={rec.fieldId} className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100">
+                    <div className="flex items-center space-x-3">
+                      <Layers className="h-5 w-5 text-purple-500"/>
+                      <span className="text-sm font-bold text-slate-700 truncate max-w-[150px]">{rec.name}</span>
                     </div>
-                    <div className="text-right border-t border-slate-50 pt-2 mt-auto">
-                      <p className="text-sm font-bold text-slate-900">{formatFullCurrency(rec.cost)}</p>
+                    <div className="text-right">
+                       <p className="text-sm font-bold text-slate-900">{formatFullCurrency(rec.cost)}</p>
+                       <p className="text-xs text-slate-400">
+                        {rec.type === 'rate' ? `${rec.consumption ?? 0} ${rec.unit}` : t.history.fixed}
+                       </p>
                     </div>
                   </div>
                 ))}
@@ -170,7 +174,7 @@ const History: React.FC<HistoryProps> = ({ user, currentObject }) => {
             )}
           </div>
         ))}
-      </div>
+      </section>
     </div>
   );
 };
