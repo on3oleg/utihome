@@ -39,6 +39,7 @@ export const translations = {
       calculator: "Calculator",
       history: "History",
       settings: "Settings",
+      profile: "Profile",
       signOut: "Sign Out",
       addProperty: "Add Property",
       loggedIn: "Logged in",
@@ -46,6 +47,8 @@ export const translations = {
     },
     calculator: {
       calculatingFor: "Calculating for:",
+      newReadings: "New Readings",
+      bill: "Bill",
       electricity: "Electricity",
       water: "Water",
       gas: "Gas",
@@ -55,7 +58,7 @@ export const translations = {
       usage: "Usage",
       fixedFee: "Fixed Fee",
       estimatedBill: "Estimated Bill",
-      saveButton: "Save Bill & Update Readings",
+      saveButton: "Save Bill",
       saveError: "Failed to save bill. Please try again.",
       loadError: "Failed to load tariff rates.",
       standardUtilities: "Standard Utilities"
@@ -99,6 +102,14 @@ export const translations = {
       types: {
         fee: "Fixed Fee",
         rate: "Metered Rate"
+      },
+      placeholders: {
+        serviceName: "Service Name",
+        feeAmount: "Fee Amount",
+        unit: "Unit",
+        price: "Price",
+        start: "Start",
+        current: "Current"
       }
     },
     objectManager: {
@@ -106,7 +117,9 @@ export const translations = {
       name: "Property Name",
       description: "Description (Optional)",
       create: "Create Object",
-      error: "Failed to create object"
+      error: "Failed to create object",
+      placeholderName: "e.g. Summer House, Office",
+      placeholderDesc: "..."
     }
   },
   uk: {
@@ -145,6 +158,7 @@ export const translations = {
       calculator: "Калькулятор",
       history: "Історія",
       settings: "Налаштування",
+      profile: "Профіль",
       signOut: "Вийти",
       addProperty: "Додати об'єкт",
       loggedIn: "Увійшов як",
@@ -152,6 +166,8 @@ export const translations = {
     },
     calculator: {
       calculatingFor: "Розрахунок для:",
+      newReadings: "Нові показники",
+      bill: "Рахунок",
       electricity: "Електроенергія",
       water: "Вода",
       gas: "Газ",
@@ -161,7 +177,7 @@ export const translations = {
       usage: "Спожито",
       fixedFee: "Фікс. плата",
       estimatedBill: "Орієнтовний рахунок",
-      saveButton: "Зберегти рахунок та оновити показники",
+      saveButton: "Зберегти рахунок",
       saveError: "Не вдалося зберегти рахунок.",
       loadError: "Не вдалося завантажити тарифи.",
       standardUtilities: "Комунальні послуги"
@@ -205,6 +221,14 @@ export const translations = {
       types: {
         fee: "Фіксована плата",
         rate: "За лічильником"
+      },
+      placeholders: {
+        serviceName: "Назва послуги",
+        feeAmount: "Сума",
+        unit: "Од.",
+        price: "Ціна",
+        start: "Старт",
+        current: "Поточні"
       }
     },
     objectManager: {
@@ -212,7 +236,9 @@ export const translations = {
       name: "Назва об'єкту",
       description: "Опис (необов'язково)",
       create: "Створити об'єкт",
-      error: "Не вдалося створити об'єкт"
+      error: "Не вдалося створити об'єкт",
+      placeholderName: "напр. Дача, Офіс",
+      placeholderDesc: "..."
     }
   }
 };

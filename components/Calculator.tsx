@@ -163,7 +163,7 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
     }
   };
 
-  const formatCurrency = (val: number) => val.toLocaleString('uk-UA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const formatCurrency = (val: number) => val.toLocaleString('uk-UA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₴';
   
   if (loading) return <div className="flex justify-center h-64 items-center"><IonSpinner color="primary" /></div>;
 
@@ -172,7 +172,7 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
       
       {/* SECTION 1: New Readings */}
       <section>
-        <h2 className="text-sm font-medium text-slate-500 mb-4 pl-1">New readings</h2>
+        <h2 className="text-sm font-medium text-slate-500 mb-4 pl-1">{t.calculator.newReadings}</h2>
         <IonList lines="none" className="bg-transparent space-y-4">
 
           {/* Electricity Row */}
@@ -183,20 +183,21 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
                <IonItem className="rounded-xl overflow-hidden" style={{ '--background': '#f1f5f9', '--padding-start': '16px' }}>
                   <IonInput
                     type="number"
+                    inputmode="decimal"
                     value={currentReadings.electricity}
                     onIonInput={(e) => handleInputChange('electricity', e.detail.value!)}
                     placeholder={rates.lastReadings.electricity.toString()}
                     className="text-lg font-bold"
                   ></IonInput>
-                  <IonNote slot="end" className="text-slate-500 font-medium">kWh</IonNote>
+                  <IonNote slot="end" className="text-slate-500 font-medium">{t.common.units.kwh}</IonNote>
                </IonItem>
                <div className="flex justify-between mt-1 px-1">
-                 <span className="text-xs text-slate-400">Rate: {rates.electricityRate}</span>
+                 <span className="text-xs text-slate-400">{t.calculator.rate}: {rates.electricityRate}</span>
               </div>
             </div>
-            <div className="text-right pt-2 min-w-[70px]">
-               <div className="text-xs text-slate-400 mb-1">Prev <span className="text-slate-600 font-medium">{rates.lastReadings.electricity}</span></div>
-               <div className="text-xs text-slate-400">Usage <span className="text-slate-800 font-bold">{consumption.electricity}</span></div>
+            <div className="text-right pt-2 min-w-[50px]">
+               <div className="text-xs text-slate-400 mb-1 h-4 flex items-center justify-end"><span className="text-slate-600 font-medium">{rates.lastReadings.electricity}</span></div>
+               <div className="text-xs text-slate-400 h-4 flex items-center justify-end"><span className="text-slate-800 font-bold">{consumption.electricity}</span></div>
             </div>
           </div>
 
@@ -207,20 +208,21 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
                <IonItem className="rounded-xl overflow-hidden" style={{ '--background': '#f1f5f9', '--padding-start': '16px' }}>
                   <IonInput
                     type="number"
+                    inputmode="decimal"
                     value={currentReadings.water}
                     onIonInput={(e) => handleInputChange('water', e.detail.value!)}
                     placeholder={rates.lastReadings.water.toString()}
                     className="text-lg font-bold"
                   ></IonInput>
-                  <IonNote slot="end" className="text-slate-500 font-medium">m³</IonNote>
+                  <IonNote slot="end" className="text-slate-500 font-medium">{t.common.units.m3}</IonNote>
                </IonItem>
                <div className="flex justify-between mt-1 px-1">
-                 <span className="text-xs text-slate-400">+ fixed: {rates.waterSubscriptionFee}</span>
+                 <span className="text-xs text-slate-400">+ {t.calculator.fixedFee}: {rates.waterSubscriptionFee}</span>
               </div>
             </div>
-             <div className="text-right pt-2 min-w-[70px]">
-               <div className="text-xs text-slate-400 mb-1">Prev <span className="text-slate-600 font-medium">{rates.lastReadings.water}</span></div>
-               <div className="text-xs text-slate-400">Usage <span className="text-slate-800 font-bold">{consumption.water}</span></div>
+             <div className="text-right pt-2 min-w-[50px]">
+               <div className="text-xs text-slate-400 mb-1 h-4 flex items-center justify-end"><span className="text-slate-600 font-medium">{rates.lastReadings.water}</span></div>
+               <div className="text-xs text-slate-400 h-4 flex items-center justify-end"><span className="text-slate-800 font-bold">{consumption.water}</span></div>
             </div>
           </div>
 
@@ -231,20 +233,21 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
               <IonItem className="rounded-xl overflow-hidden" style={{ '--background': '#f1f5f9', '--padding-start': '16px' }}>
                   <IonInput
                     type="number"
+                    inputmode="decimal"
                     value={currentReadings.gas}
                     onIonInput={(e) => handleInputChange('gas', e.detail.value!)}
                     placeholder={rates.lastReadings.gas.toString()}
                     className="text-lg font-bold"
                   ></IonInput>
-                  <IonNote slot="end" className="text-slate-500 font-medium">m³</IonNote>
+                  <IonNote slot="end" className="text-slate-500 font-medium">{t.common.units.m3}</IonNote>
                </IonItem>
                <div className="flex justify-between mt-1 px-1">
-                 <span className="text-xs text-slate-400">+ fixed: {rates.gasDistributionFee}</span>
+                 <span className="text-xs text-slate-400">+ {t.calculator.fixedFee}: {rates.gasDistributionFee}</span>
               </div>
             </div>
-             <div className="text-right pt-2 min-w-[70px]">
-               <div className="text-xs text-slate-400 mb-1">Prev <span className="text-slate-600 font-medium">{rates.lastReadings.gas}</span></div>
-               <div className="text-xs text-slate-400">Usage <span className="text-slate-800 font-bold">{consumption.gas}</span></div>
+             <div className="text-right pt-2 min-w-[50px]">
+               <div className="text-xs text-slate-400 mb-1 h-4 flex items-center justify-end"><span className="text-slate-600 font-medium">{rates.lastReadings.gas}</span></div>
+               <div className="text-xs text-slate-400 h-4 flex items-center justify-end"><span className="text-slate-800 font-bold">{consumption.gas}</span></div>
             </div>
           </div>
 
@@ -256,6 +259,7 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
                   <IonItem className="rounded-xl overflow-hidden" style={{ '--background': '#f1f5f9', '--padding-start': '16px' }}>
                       <IonInput
                         type="number"
+                        inputmode="decimal"
                         value={customReadings[field.id] || ''}
                         onIonInput={(e) => handleCustomReadingChange(field.id, e.detail.value!)}
                         placeholder={(rates.lastReadings[field.id] || 0).toString()}
@@ -265,8 +269,8 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
                   </IonItem>
                   <div className="mt-1 px-1"><span className="text-xs text-slate-400">{field.name}</span></div>
                 </div>
-                 <div className="text-right pt-2 min-w-[70px]">
-                   <div className="text-xs text-slate-400">Prev <span className="text-slate-600 font-medium">{rates.lastReadings[field.id] || 0}</span></div>
+                 <div className="text-right pt-2 min-w-[50px]">
+                   <div className="text-xs text-slate-400 mb-1 h-4 flex items-center justify-end"><span className="text-slate-600 font-medium">{rates.lastReadings[field.id] || 0}</span></div>
                 </div>
              </div>
           ))}
@@ -277,7 +281,7 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
 
       {/* SECTION 2: Bill */}
       <section>
-        <h2 className="text-sm font-medium text-slate-500 mb-4 pl-1">Bill</h2>
+        <h2 className="text-sm font-medium text-slate-500 mb-4 pl-1">{t.calculator.bill}</h2>
         <div className="space-y-4 px-2">
           
           <div className="flex justify-between items-center">
@@ -285,7 +289,7 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
                 <Zap className="h-5 w-5 text-black" strokeWidth={1.5}/>
                 <span className="text-lg font-medium">{formatCurrency(breakdown.electricityCost)}</span>
              </div>
-             <span className="text-slate-400 text-sm">{consumption.electricity} kWh</span>
+             <span className="text-slate-400 text-sm">{consumption.electricity} {t.common.units.kwh}</span>
           </div>
 
           <div className="flex justify-between items-center">
@@ -293,7 +297,7 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
                 <Droplets className="h-5 w-5 text-black" strokeWidth={1.5}/>
                 <span className="text-lg font-medium">{formatCurrency(breakdown.waterCost + breakdown.waterSubscriptionFee)}</span>
              </div>
-             <span className="text-slate-400 text-sm">{consumption.water} m³</span>
+             <span className="text-slate-400 text-sm">{consumption.water} {t.common.units.m3}</span>
           </div>
 
            <div className="flex justify-between items-center">
@@ -301,7 +305,7 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
                 <Flame className="h-5 w-5 text-black" strokeWidth={1.5}/>
                 <span className="text-lg font-medium">{formatCurrency(breakdown.gasCost + breakdown.gasDistributionFee)}</span>
              </div>
-             <span className="text-slate-400 text-sm">{consumption.gas} m³</span>
+             <span className="text-slate-400 text-sm">{consumption.gas} {t.common.units.m3}</span>
           </div>
 
           {customBillRecords.map(rec => (
@@ -323,7 +327,7 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
         {/* TOTAL */}
         <div className="mt-8 mb-8 text-center">
            <div className="text-5xl font-bold text-black tracking-tight">
-             {totalCost.toFixed(2)}
+             {formatCurrency(totalCost)}
            </div>
         </div>
 
@@ -334,7 +338,7 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
           className="ion-margin-top text-lg font-semibold h-14"
           style={{ '--border-radius': '12px', '--background': '#000000', '--color': '#ffffff' }}
         >
-          {saving ? <IonSpinner name="crescent" /> : "Save Bill"}
+          {saving ? <IonSpinner name="crescent" /> : t.calculator.saveButton}
         </IonButton>
 
       </section>

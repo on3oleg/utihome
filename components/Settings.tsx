@@ -241,7 +241,7 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
                    <div className="flex gap-2">
                       <div className="flex-1">
                         <IonInput 
-                          label="Price" labelPlacement="stacked"
+                          label={t.settings.placeholders.price} labelPlacement="stacked"
                           type="number" value={field.price}
                           onIonInput={e => handleCustomFieldPriceChange(field.id, e.detail.value!)}
                           className="bg-slate-50 rounded px-2"
@@ -250,7 +250,7 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
                       {field.type === 'rate' && (
                         <div className="flex-1">
                            <IonInput 
-                             label="Current" labelPlacement="stacked"
+                             label={t.settings.placeholders.current} labelPlacement="stacked"
                              type="number" value={rates.lastReadings[field.id] || 0}
                              onIonInput={e => handleReadingChange(field.id, e.detail.value!)}
                              className="bg-slate-50 rounded px-2"
@@ -265,23 +265,23 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
             <div className="p-4 bg-slate-50">
                <h4 className="text-sm font-bold text-slate-700 mb-3 flex items-center"><Plus className="h-4 w-4 mr-1"/> {t.settings.addService}</h4>
                <div className="space-y-3">
-                  <input type="text" placeholder="Service Name" value={newFieldName} onChange={e => setNewFieldName(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"/>
+                  <input type="text" placeholder={t.settings.placeholders.serviceName} value={newFieldName} onChange={e => setNewFieldName(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"/>
                   <select value={newFieldType} onChange={e => setNewFieldType(e.target.value as any)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white">
-                     <option value="fee">Fixed Fee</option>
-                     <option value="rate">Metered Rate</option>
+                     <option value="fee">{t.settings.types.fee}</option>
+                     <option value="rate">{t.settings.types.rate}</option>
                   </select>
                   
                   {newFieldType === 'fee' ? (
-                     <input type="number" placeholder="Fee Amount" value={newFieldPrice} onChange={e => setNewFieldPrice(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"/>
+                     <input type="number" placeholder={t.settings.placeholders.feeAmount} value={newFieldPrice} onChange={e => setNewFieldPrice(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"/>
                   ) : (
                      <div className="grid grid-cols-3 gap-2">
-                        <input type="text" placeholder="Unit" value={newFieldUnit} onChange={e => setNewFieldUnit(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"/>
-                        <input type="number" placeholder="Price" value={newFieldPrice} onChange={e => setNewFieldPrice(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"/>
-                        <input type="number" placeholder="Start" value={newFieldStartReading} onChange={e => setNewFieldStartReading(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"/>
+                        <input type="text" placeholder={t.settings.placeholders.unit} value={newFieldUnit} onChange={e => setNewFieldUnit(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"/>
+                        <input type="number" placeholder={t.settings.placeholders.price} value={newFieldPrice} onChange={e => setNewFieldPrice(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"/>
+                        <input type="number" placeholder={t.settings.placeholders.start} value={newFieldStartReading} onChange={e => setNewFieldStartReading(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"/>
                      </div>
                   )}
 
-                  <IonButton fill="outline" expand="block" size="small" onClick={handleAddCustomField} disabled={!newFieldName}>Add</IonButton>
+                  <IonButton fill="outline" expand="block" size="small" onClick={handleAddCustomField} disabled={!newFieldName}>{t.common.add}</IonButton>
                </div>
             </div>
         </IonList>

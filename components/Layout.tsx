@@ -141,7 +141,7 @@ const Layout: React.FC<LayoutProps> = ({
               className={`flex flex-col items-center space-y-1 transition-colors ${currentView === 'profile' ? 'text-black' : 'text-slate-400'}`}
             >
               <UserIcon className="h-7 w-7" strokeWidth={currentView === 'profile' ? 2.5 : 2} />
-              <span className="text-[10px] font-medium">Profile</span>
+              <span className="text-[10px] font-medium">{t.layout.profile}</span>
             </button>
           </div>
         </IonToolbar>

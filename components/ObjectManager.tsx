@@ -52,7 +52,7 @@ const ObjectManager: React.FC<ObjectManagerProps> = ({ user, onObjectCreated, on
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Summer House, Office"
+              placeholder={t.objectManager.placeholderName}
               className="block w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 bg-slate-50"
             />
           </div>
@@ -63,7 +63,7 @@ const ObjectManager: React.FC<ObjectManagerProps> = ({ user, onObjectCreated, on
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="..."
+              placeholder={t.objectManager.placeholderDesc}
               className="block w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 bg-slate-50"
             />
           </div>
