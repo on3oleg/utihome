@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { BillRecord, User, UserObject } from '../types';
-import { subscribeToHistory } from '../services/db';
-import { Calendar, ChevronDown, ChevronUp, Zap, Droplets, Flame, TrendingUp, Box } from 'lucide-react';
+import { subscribeToHistory, updateBillName } from '../services/db';
+import { Calendar, ChevronDown, ChevronUp, Zap, Droplets, Flame, TrendingUp, Box, Pencil, Check, X } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { IonSpinner } from '@ionic/react';
 import { useLanguage } from '../i18n';
@@ -15,6 +15,11 @@ const History: React.FC<HistoryProps> = ({ user, currentObject }) => {
   const [bills, setBills] = useState<BillRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  
+  // Renaming State
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [tempName, setTempName] = useState('');
+
   const { t } = useLanguage();
 
   useEffect(() => {
@@ -27,7 +32,29 @@ const History: React.FC<HistoryProps> = ({ user, currentObject }) => {
   }, [currentObject.id]);
 
   const toggleExpand = (id: string) => {
+    // If editing, don't collapse
+    if (editingId === id) return;
     setExpandedId(expandedId === id ? null : id);
+  };
+
+  const startEditing = (e: React.MouseEvent, bill: BillRecord) => {
+    e.stopPropagation();
+    setEditingId(bill.id!);
+    setTempName(bill.name || '');
+  };
+
+  const cancelEditing = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingId(null);
+    setTempName('');
+  };
+
+  const saveName = async (e: React.MouseEvent, billId: string) => {
+    e.stopPropagation();
+    if (!billId) return;
+    
+    await updateBillName(currentObject.id, billId, tempName);
+    setEditingId(null);
   };
 
   const formatFullCurrency = (val: number) => {
@@ -106,11 +133,48 @@ const History: React.FC<HistoryProps> = ({ user, currentObject }) => {
                 <div className={`p-3 rounded-xl ${expandedId === bill.id ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
                    <Calendar className="h-5 w-5" />
                 </div>
-                <div className="text-left">
-                  <p className="font-bold text-slate-800">{new Date(bill.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                  <p className="text-xs text-slate-400 font-medium">{new Date(bill.date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</p>
+                
+                <div className="text-left" onClick={(e) => e.stopPropagation()}>
+                   {editingId === bill.id ? (
+                      <div className="flex items-center gap-2">
+                        <input 
+                          type="text" 
+                          autoFocus
+                          value={tempName}
+                          onChange={(e) => setTempName(e.target.value)}
+                          placeholder={new Date(bill.date).toLocaleDateString()}
+                          className="w-32 text-sm font-bold border-b border-indigo-500 outline-none bg-transparent text-slate-900 pb-0.5"
+                          onKeyDown={(e) => {
+                             if(e.key === 'Enter') saveName(e as any, bill.id!);
+                             if(e.key === 'Escape') cancelEditing(e as any);
+                          }}
+                        />
+                        <button onClick={(e) => saveName(e, bill.id!)} className="p-1 bg-indigo-50 rounded-full text-indigo-600 hover:bg-indigo-100"><Check className="h-3 w-3" /></button>
+                        <button onClick={(e) => cancelEditing(e)} className="p-1 bg-red-50 rounded-full text-red-500 hover:bg-red-100"><X className="h-3 w-3" /></button>
+                      </div>
+                   ) : (
+                      <div className="group flex items-center gap-2 relative">
+                         <p className="font-bold text-slate-800">
+                           {bill.name || new Date(bill.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+                         </p>
+                         <button 
+                           onClick={(e) => startEditing(e, bill)}
+                           className="text-slate-300 hover:text-indigo-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity absolute -right-6 top-1/2 -translate-y-1/2"
+                         >
+                            <Pencil className="h-3 w-3" />
+                         </button>
+                      </div>
+                   )}
+                   
+                   <p className="text-xs text-slate-400 font-medium mt-0.5">
+                     {bill.name 
+                        ? `${new Date(bill.date).toLocaleDateString()} • ${new Date(bill.date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}` 
+                        : new Date(bill.date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+                     }
+                   </p>
                 </div>
               </div>
+              
               <div className="flex items-center space-x-3">
                 <span className="font-extrabold text-slate-900 text-lg">{Math.round(bill.totalCost).toLocaleString()} <span className="text-sm font-normal text-slate-400">₴</span></span>
                 {expandedId === bill.id ? <ChevronUp className="h-5 w-5 text-slate-400" /> : <ChevronDown className="h-5 w-5 text-slate-400" />}

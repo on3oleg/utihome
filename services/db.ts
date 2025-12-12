@@ -347,6 +347,34 @@ const getBills = async (objectId: number): Promise<BillRecord[]> => {
   return results;
 };
 
+// Update specific bill name
+export const updateBillName = async (objectId: number, billId: string, newName: string): Promise<void> => {
+  await ensureInitialized();
+  if (!db) return;
+
+  // 1. Fetch existing bill to get current data
+  const fetchStmt = db.prepare("SELECT data FROM bills WHERE id = ?");
+  fetchStmt.bind([billId]);
+  
+  if (fetchStmt.step()) {
+    const row = fetchStmt.get();
+    const billData = JSON.parse(row[0]);
+    
+    // 2. Update name
+    billData.name = newName;
+    
+    // 3. Save back
+    const updateStmt = db.prepare("UPDATE bills SET data = ? WHERE id = ?");
+    updateStmt.run([JSON.stringify(billData), billId]);
+    updateStmt.free();
+    
+    persistDB();
+    notifyListeners(objectId);
+  }
+  fetchStmt.free();
+};
+
+
 // Helper to rename custom service in all history records
 export const updateBillHistoryServiceName = async (objectId: number, fieldId: string, newName: string): Promise<void> => {
   await ensureInitialized();

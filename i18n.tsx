@@ -79,7 +79,8 @@ export const translations = {
       water: "Water",
       gas: "Gas",
       services: "Services",
-      fixed: "Fixed"
+      fixed: "Fixed",
+      renameBill: "Rename Bill"
     },
     settings: {
       settingsFor: "Settings for:",
@@ -204,7 +205,8 @@ export const translations = {
       water: "Вода",
       gas: "Газ",
       services: "Послуги",
-      fixed: "Фіксовано"
+      fixed: "Фіксовано",
+      renameBill: "Перейменувати рахунок"
     },
     settings: {
       settingsFor: "Налаштування для:",

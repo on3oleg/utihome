@@ -62,6 +62,7 @@ export interface BillRecord {
   userId?: number;
   objectId?: number; 
   date: number; // Unix timestamp (milliseconds)
+  name?: string; // User defined name for the bill
   electricityConsumption: number;
   waterConsumption: number;
   gasConsumption: number;
