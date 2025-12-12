@@ -217,7 +217,9 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
                   <IonNote slot="end" className="text-slate-500 font-medium">{t.common.units.m3}</IonNote>
                </IonItem>
                <div className="flex justify-between mt-1 px-1">
-                 <span className="text-xs text-slate-400">+ {t.calculator.fixedFee}: {rates.waterSubscriptionFee}</span>
+                 <span className="text-xs text-slate-400">
+                   {t.calculator.rate}: {rates.waterRate} + {t.calculator.fixedFee}: {rates.waterSubscriptionFee}
+                 </span>
               </div>
             </div>
              <div className="text-right pt-2 min-w-[50px]">
@@ -242,7 +244,9 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
                   <IonNote slot="end" className="text-slate-500 font-medium">{t.common.units.m3}</IonNote>
                </IonItem>
                <div className="flex justify-between mt-1 px-1">
-                 <span className="text-xs text-slate-400">+ {t.calculator.fixedFee}: {rates.gasDistributionFee}</span>
+                 <span className="text-xs text-slate-400">
+                   {t.calculator.rate}: {rates.gasRate} + {t.calculator.fixedFee}: {rates.gasDistributionFee}
+                 </span>
               </div>
             </div>
              <div className="text-right pt-2 min-w-[50px]">
@@ -267,7 +271,11 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
                       ></IonInput>
                       <IonNote slot="end" className="text-slate-500 font-medium">{field.unit}</IonNote>
                   </IonItem>
-                  <div className="mt-1 px-1"><span className="text-xs text-slate-400">{field.name}</span></div>
+                  <div className="mt-1 px-1">
+                    <span className="text-xs text-slate-400">
+                      {field.name} • {t.calculator.rate}: {field.price}
+                    </span>
+                  </div>
                 </div>
                  <div className="text-right pt-2 min-w-[50px]">
                    <div className="text-xs text-slate-400 mb-1 h-4 flex items-center justify-end"><span className="text-slate-600 font-medium">{rates.lastReadings[field.id] || 0}</span></div>

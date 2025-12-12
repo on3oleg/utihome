@@ -175,7 +175,7 @@ export const translations = {
       prev: "Попер",
       current: "Поточні",
       usage: "Спожито",
-      fixedFee: "Фікс. плата",
+      fixedFee: "Фікс",
       estimatedBill: "Орієнтовний рахунок",
       saveButton: "Зберегти рахунок",
       saveError: "Не вдалося зберегти рахунок.",

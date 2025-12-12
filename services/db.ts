@@ -1,5 +1,5 @@
 import localforage from 'localforage';
-import { TariffRates, BillRecord, DEFAULT_TARIFFS, User, UserObject } from "../types";
+import { TariffRates, BillRecord, DEFAULT_TARIFFS, LEGACY_TARIFFS, User, UserObject } from "../types";
 
 // Type definition for sql.js
 declare global {
@@ -141,8 +141,8 @@ const _initializeDB = async () => {
       if (objCount === 0) {
         console.log("Migrating on3oleg data to new objects...");
 
-        // 1. Retrieve existing tariff data if any
-        let existingTariffs = DEFAULT_TARIFFS;
+        // 1. Retrieve existing tariff data if any. Use LEGACY_TARIFFS as baseline for this user.
+        let existingTariffs = LEGACY_TARIFFS;
         try {
             const oldTariffStmt = db.prepare("SELECT data FROM tariffs WHERE id = ?");
             oldTariffStmt.bind([userId]);

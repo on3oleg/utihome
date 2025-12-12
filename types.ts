@@ -72,7 +72,7 @@ export interface BillRecord {
 
 export type ViewState = 'calculator' | 'history' | 'settings' | 'profile';
 
-export const DEFAULT_TARIFFS: TariffRates = {
+export const LEGACY_TARIFFS: TariffRates = {
   electricityRate: 4.32,
   waterRate: 20.47,
   gasRate: 7.95,
@@ -83,5 +83,19 @@ export const DEFAULT_TARIFFS: TariffRates = {
     electricity: 18329,
     water: 1224,
     gas: 12994
+  }
+};
+
+export const DEFAULT_TARIFFS: TariffRates = {
+  electricityRate: 0,
+  waterRate: 0,
+  gasRate: 0,
+  waterSubscriptionFee: 0,
+  gasDistributionFee: 0,
+  customFields: [],
+  lastReadings: {
+    electricity: 0,
+    water: 0,
+    gas: 0
   }
 };
