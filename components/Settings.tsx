@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { TariffRates, DEFAULT_TARIFFS, User, UserObject, CustomFieldConfig } from '../types';
 import { getTariffs, saveTariffs } from '../services/db';
-import { Save, Loader2, CheckCircle2, Gauge, Coins, Plus, Trash2, Tag, Layers, Globe } from 'lucide-react';
+import { Save, CheckCircle2, Gauge, Coins, Plus, Trash2, Layers, Globe } from 'lucide-react';
 import { useLanguage, Language } from '../i18n';
+import { IonInput, IonItem, IonList, IonListHeader, IonLabel, IonButton, IonSelect, IonSelectOption, IonNote, IonSpinner } from '@ionic/react';
 
 interface SettingsProps {
   user: User;
@@ -133,22 +134,22 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
   if (loading) {
      return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+        <IonSpinner color="primary" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
       
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-4 px-2">
         <div className="flex items-center space-x-2 text-slate-500 text-sm">
           <span>{t.settings.settingsFor}</span>
           <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">{currentObject.name}</span>
         </div>
 
         {/* Language Selector */}
-        <div className="flex items-center space-x-2 bg-white rounded-lg px-3 py-1.5 shadow-sm border border-slate-200">
+        <div className="flex items-center space-x-2 bg-white rounded-lg px-2 py-1 shadow-sm border border-slate-200">
            <Globe className="h-4 w-4 text-slate-400" />
            <select 
              value={language}
@@ -164,295 +165,148 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
       <form onSubmit={handleSave} className="space-y-6">
 
         {/* Standard Tariffs Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center space-x-3">
-            <Coins className="h-5 w-5 text-indigo-600" />
-            <div>
-              <h2 className="text-lg font-bold text-slate-800">{t.settings.standardTariffs}</h2>
-              <p className="text-sm text-slate-500">{t.settings.standardTariffsDesc}</p>
-            </div>
-          </div>
+        <IonList inset className="m-0 rounded-2xl shadow-sm border border-slate-200">
+          <IonListHeader className="border-b border-slate-100 bg-slate-50 pl-4 py-2">
+             <div className="flex items-center space-x-2 my-2">
+                <Coins className="h-5 w-5 text-indigo-600" />
+                <IonLabel className="font-bold text-slate-800">{t.settings.standardTariffs}</IonLabel>
+             </div>
+          </IonListHeader>
+          
+          <IonItem>
+            <IonLabel position="stacked" className="font-bold text-slate-700">{t.calculator.electricity}</IonLabel>
+            <IonInput 
+               type="number" step="0.01" value={rates.electricityRate} 
+               onIonInput={e => handleRateChange('electricityRate', e.detail.value!)}
+               placeholder="0.00"
+            />
+            <IonNote slot="end">₴ / {t.common.units.kwh}</IonNote>
+          </IonItem>
 
-          <div className="p-6 space-y-6">
-            {/* Electricity */}
-            <div className="group">
-              <label className="block text-sm font-bold text-slate-700 mb-2">{t.calculator.electricity}</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold">₴</div>
-                <input
-                  type="number" step="0.01" required value={rates.electricityRate}
-                  onChange={(e) => handleRateChange('electricityRate', e.target.value)}
-                  className="block w-full pl-8 pr-12 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 transition-all text-slate-900 bg-slate-50 group-hover:bg-white"
-                  placeholder="0.00"
-                />
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
-                  <span className="text-xs font-medium bg-slate-100 px-2 py-1 rounded">/ {t.common.units.kwh}</span>
-                </div>
-              </div>
-            </div>
+          <IonItem>
+            <IonLabel position="stacked" className="font-bold text-slate-700">{t.settings.waterRate}</IonLabel>
+            <IonInput 
+               type="number" step="0.01" value={rates.waterRate} 
+               onIonInput={e => handleRateChange('waterRate', e.detail.value!)}
+            />
+            <IonNote slot="end">₴ / {t.common.units.m3}</IonNote>
+          </IonItem>
 
-            <div className="border-t border-slate-100 my-4"></div>
+           <IonItem>
+            <IonLabel position="stacked" className="font-bold text-slate-700">{t.settings.waterSubFee}</IonLabel>
+            <IonInput 
+               type="number" step="0.01" value={rates.waterSubscriptionFee} 
+               onIonInput={e => handleRateChange('waterSubscriptionFee', e.detail.value!)}
+            />
+             <IonNote slot="end">₴ {t.common.units.fixed}</IonNote>
+          </IonItem>
 
-            {/* Water */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="group">
-                <label className="block text-sm font-bold text-slate-700 mb-2">{t.settings.waterRate}</label>
-                <div className="relative">
-                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold">₴</div>
-                  <input
-                    type="number" step="0.01" required value={rates.waterRate}
-                    onChange={(e) => handleRateChange('waterRate', e.target.value)}
-                    className="block w-full pl-8 pr-12 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-cyan-500 transition-all text-slate-900 bg-slate-50 group-hover:bg-white"
-                  />
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
-                    <span className="text-xs font-medium bg-slate-100 px-2 py-1 rounded">/ {t.common.units.m3}</span>
-                  </div>
-                </div>
-              </div>
+           <IonItem>
+            <IonLabel position="stacked" className="font-bold text-slate-700">{t.settings.gasRate}</IonLabel>
+            <IonInput 
+               type="number" step="0.01" value={rates.gasRate} 
+               onIonInput={e => handleRateChange('gasRate', e.detail.value!)}
+            />
+             <IonNote slot="end">₴ / {t.common.units.m3}</IonNote>
+          </IonItem>
 
-              <div className="group">
-                <label className="block text-sm font-bold text-slate-700 mb-2">{t.settings.waterSubFee}</label>
-                <div className="relative">
-                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold">₴</div>
-                  <input
-                    type="number" step="0.01" required value={rates.waterSubscriptionFee}
-                    onChange={(e) => handleRateChange('waterSubscriptionFee', e.target.value)}
-                    className="block w-full pl-8 pr-12 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-cyan-500 transition-all text-slate-900 bg-slate-50 group-hover:bg-white"
-                  />
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
-                    <span className="text-xs font-medium bg-slate-100 px-2 py-1 rounded">{t.common.units.fixed}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="border-t border-slate-100 my-4"></div>
-
-            {/* Gas */}
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="group">
-                <label className="block text-sm font-bold text-slate-700 mb-2">{t.settings.gasRate}</label>
-                <div className="relative">
-                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold">₴</div>
-                  <input
-                    type="number" step="0.01" required value={rates.gasRate}
-                    onChange={(e) => handleRateChange('gasRate', e.target.value)}
-                    className="block w-full pl-8 pr-12 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 transition-all text-slate-900 bg-slate-50 group-hover:bg-white"
-                  />
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
-                    <span className="text-xs font-medium bg-slate-100 px-2 py-1 rounded">/ {t.common.units.m3}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="group">
-                <label className="block text-sm font-bold text-slate-700 mb-2">{t.settings.gasDistFee}</label>
-                <div className="relative">
-                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold">₴</div>
-                  <input
-                    type="number" step="0.01" required value={rates.gasDistributionFee}
-                    onChange={(e) => handleRateChange('gasDistributionFee', e.target.value)}
-                    className="block w-full pl-8 pr-12 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 transition-all text-slate-900 bg-slate-50 group-hover:bg-white"
-                  />
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
-                    <span className="text-xs font-medium bg-slate-100 px-2 py-1 rounded">{t.common.units.fixed}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+           <IonItem>
+            <IonLabel position="stacked" className="font-bold text-slate-700">{t.settings.gasDistFee}</IonLabel>
+            <IonInput 
+               type="number" step="0.01" value={rates.gasDistributionFee} 
+               onIonInput={e => handleRateChange('gasDistributionFee', e.detail.value!)}
+            />
+             <IonNote slot="end">₴ {t.common.units.fixed}</IonNote>
+          </IonItem>
+        </IonList>
 
         {/* Custom Fields Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center space-x-3">
-            <Layers className="h-5 w-5 text-indigo-600" />
-            <div>
-              <h2 className="text-lg font-bold text-slate-800">{t.settings.additionalServices}</h2>
-              <p className="text-sm text-slate-500">{t.settings.additionalServicesDesc}</p>
-            </div>
-          </div>
+        <IonList inset className="m-0 rounded-2xl shadow-sm border border-slate-200">
+           <IonListHeader className="border-b border-slate-100 bg-slate-50 pl-4 py-2">
+             <div className="flex items-center space-x-2 my-2">
+                <Layers className="h-5 w-5 text-indigo-600" />
+                <IonLabel className="font-bold text-slate-800">{t.settings.additionalServices}</IonLabel>
+             </div>
+          </IonListHeader>
 
-          <div className="p-6 space-y-6">
-            
-            {/* List Existing Custom Fields */}
-            {rates.customFields.map((field) => (
-              <div key={field.id} className="flex flex-col md:flex-row md:items-end gap-3 pb-4 border-b border-slate-50 last:border-0 last:pb-0">
-                <div className="flex-1">
-                  <label className="block text-xs font-bold text-slate-500 mb-1">{field.name} ({field.type === 'fee' ? t.settings.types.fee : t.settings.types.rate})</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold">₴</div>
-                    <input
-                      type="number" step="0.01" required 
-                      value={field.price}
-                      onChange={(e) => handleCustomFieldPriceChange(field.id, e.target.value)}
-                      className="block w-full pl-8 pr-12 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 text-slate-900 bg-slate-50"
-                    />
-                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
-                      <span className="text-xs font-medium bg-slate-100 px-2 py-1 rounded">
-                        {field.type === 'rate' ? `/ ${field.unit}` : t.common.units.fixed}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                {field.type === 'rate' && (
-                   <div className="w-full md:w-32">
-                      <label className="block text-xs font-bold text-slate-500 mb-1">{t.settings.currentReading}</label>
-                      <input 
-                         type="number"
-                         step="1"
-                         value={rates.lastReadings[field.id] || 0}
-                         onChange={(e) => handleReadingChange(field.id, e.target.value)}
-                         className="block w-full px-3 py-2 border border-slate-200 rounded-lg text-slate-900 bg-slate-50"
-                         placeholder="0"
-                      />
+           {rates.customFields.map((field) => (
+             <IonItem key={field.id} lines="full">
+                <div className="w-full py-2">
+                   <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm font-bold text-slate-700">{field.name}</span>
+                      <button type="button" onClick={() => handleDeleteCustomField(field.id)} className="text-red-400">
+                         <Trash2 className="h-4 w-4" />
+                      </button>
                    </div>
-                )}
-                <button
-                  type="button"
-                  onClick={() => handleDeleteCustomField(field.id)}
-                  className="p-2.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors self-end"
-                >
-                  <Trash2 className="h-5 w-5" />
-                </button>
-              </div>
-            ))}
-
-            {/* Add New Field Form */}
-            <div className="bg-slate-50 p-4 rounded-xl border border-dashed border-slate-300">
-              <h4 className="text-sm font-bold text-slate-700 mb-3 flex items-center">
-                <Plus className="h-4 w-4 mr-1" /> {t.settings.addService}
-              </h4>
-              <div className="grid grid-cols-1 gap-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">{t.settings.serviceName}</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Internet"
-                      value={newFieldName}
-                      onChange={(e) => setNewFieldName(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">{t.settings.type}</label>
-                    <select
-                      value={newFieldType}
-                      onChange={(e) => setNewFieldType(e.target.value as 'rate' | 'fee')}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white"
-                    >
-                      <option value="fee">{t.settings.types.fee}</option>
-                      <option value="rate">{t.settings.types.rate}</option>
-                    </select>
-                  </div>
-                </div>
-                
-                {/* Conditional Inputs based on Type */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                   {newFieldType === 'fee' ? (
-                     <div className="md:col-span-3">
-                        <label className="block text-xs font-medium text-slate-500 mb-1">{t.settings.feeAmount} (₴)</label>
-                        <input
-                          type="number"
-                          placeholder="0.00"
-                          value={newFieldPrice}
-                          onChange={(e) => setNewFieldPrice(e.target.value)}
-                          className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"
+                   <div className="flex gap-2">
+                      <div className="flex-1">
+                        <IonInput 
+                          label="Price" labelPlacement="stacked"
+                          type="number" value={field.price}
+                          onIonInput={e => handleCustomFieldPriceChange(field.id, e.detail.value!)}
+                          className="bg-slate-50 rounded px-2"
                         />
-                     </div>
-                   ) : (
-                     <>
-                        <div>
-                          <label className="block text-xs font-medium text-slate-500 mb-1">{t.settings.unit}</label>
-                          <input
-                            type="text"
-                            placeholder="e.g. kWh"
-                            value={newFieldUnit}
-                            onChange={(e) => setNewFieldUnit(e.target.value)}
-                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"
-                          />
+                      </div>
+                      {field.type === 'rate' && (
+                        <div className="flex-1">
+                           <IonInput 
+                             label="Current" labelPlacement="stacked"
+                             type="number" value={rates.lastReadings[field.id] || 0}
+                             onIonInput={e => handleReadingChange(field.id, e.detail.value!)}
+                             className="bg-slate-50 rounded px-2"
+                           />
                         </div>
-                        <div>
-                          <label className="block text-xs font-medium text-slate-500 mb-1">{t.settings.ratePrice} (₴)</label>
-                          <input
-                            type="number"
-                            placeholder="0.00"
-                            value={newFieldPrice}
-                            onChange={(e) => setNewFieldPrice(e.target.value)}
-                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-slate-500 mb-1">{t.settings.startReading}</label>
-                          <input
-                            type="number"
-                            placeholder="0"
-                            value={newFieldStartReading}
-                            onChange={(e) => setNewFieldStartReading(e.target.value)}
-                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"
-                          />
-                        </div>
-                     </>
-                   )}
+                      )}
+                   </div>
                 </div>
+             </IonItem>
+           ))}
 
-                <button
-                  type="button"
-                  onClick={handleAddCustomField}
-                  disabled={!newFieldName}
-                  className="w-full mt-2 bg-white text-slate-700 border border-slate-300 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 disabled:opacity-50 shadow-sm"
-                >
-                  {t.settings.addService}
-                </button>
-              </div>
+            <div className="p-4 bg-slate-50">
+               <h4 className="text-sm font-bold text-slate-700 mb-3 flex items-center"><Plus className="h-4 w-4 mr-1"/> {t.settings.addService}</h4>
+               <div className="space-y-3">
+                  <input type="text" placeholder="Service Name" value={newFieldName} onChange={e => setNewFieldName(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"/>
+                  <select value={newFieldType} onChange={e => setNewFieldType(e.target.value as any)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white">
+                     <option value="fee">Fixed Fee</option>
+                     <option value="rate">Metered Rate</option>
+                  </select>
+                  
+                  {newFieldType === 'fee' ? (
+                     <input type="number" placeholder="Fee Amount" value={newFieldPrice} onChange={e => setNewFieldPrice(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"/>
+                  ) : (
+                     <div className="grid grid-cols-3 gap-2">
+                        <input type="text" placeholder="Unit" value={newFieldUnit} onChange={e => setNewFieldUnit(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"/>
+                        <input type="number" placeholder="Price" value={newFieldPrice} onChange={e => setNewFieldPrice(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"/>
+                        <input type="number" placeholder="Start" value={newFieldStartReading} onChange={e => setNewFieldStartReading(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"/>
+                     </div>
+                  )}
+
+                  <IonButton fill="outline" expand="block" size="small" onClick={handleAddCustomField} disabled={!newFieldName}>Add</IonButton>
+               </div>
             </div>
-
-          </div>
-        </div>
+        </IonList>
 
         {/* Standard Meter Readings Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center space-x-3">
-            <Gauge className="h-5 w-5 text-indigo-600" />
-             <div>
-              <h2 className="text-lg font-bold text-slate-800">{t.settings.meterReadings}</h2>
-              <p className="text-sm text-slate-500">{t.settings.meterReadingsDesc}</p>
-            </div>
-          </div>
-
-          <div className="p-6 space-y-4">
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">{t.calculator.electricity} ({t.common.units.kwh})</label>
-                  <input
-                    type="number" step="1" required
-                    value={rates.lastReadings.electricity}
-                    onChange={(e) => handleReadingChange('electricity', e.target.value)}
-                    className="block w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-slate-50"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">{t.calculator.water} ({t.common.units.m3})</label>
-                  <input
-                    type="number" step="1" required
-                    value={rates.lastReadings.water}
-                    onChange={(e) => handleReadingChange('water', e.target.value)}
-                    className="block w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-cyan-500 bg-slate-50"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">{t.calculator.gas} ({t.common.units.m3})</label>
-                  <input
-                    type="number" step="1" required
-                    value={rates.lastReadings.gas}
-                    onChange={(e) => handleReadingChange('gas', e.target.value)}
-                    className="block w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 bg-slate-50"
-                  />
-                </div>
+        <IonList inset className="m-0 rounded-2xl shadow-sm border border-slate-200">
+           <IonListHeader className="border-b border-slate-100 bg-slate-50 pl-4 py-2">
+             <div className="flex items-center space-x-2 my-2">
+                <Gauge className="h-5 w-5 text-indigo-600" />
+                <IonLabel className="font-bold text-slate-800">{t.settings.meterReadings}</IonLabel>
              </div>
-          </div>
-        </div>
+          </IonListHeader>
+          <IonItem>
+             <IonLabel position="stacked">{t.calculator.electricity} ({t.common.units.kwh})</IonLabel>
+             <IonInput type="number" value={rates.lastReadings.electricity} onIonInput={e => handleReadingChange('electricity', e.detail.value!)} />
+          </IonItem>
+          <IonItem>
+             <IonLabel position="stacked">{t.calculator.water} ({t.common.units.m3})</IonLabel>
+             <IonInput type="number" value={rates.lastReadings.water} onIonInput={e => handleReadingChange('water', e.detail.value!)} />
+          </IonItem>
+          <IonItem>
+             <IonLabel position="stacked">{t.calculator.gas} ({t.common.units.m3})</IonLabel>
+             <IonInput type="number" value={rates.lastReadings.gas} onIonInput={e => handleReadingChange('gas', e.detail.value!)} />
+          </IonItem>
+        </IonList>
 
         <div className="pt-2">
            {message && (
@@ -462,17 +316,15 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={saving}
-            className={`w-full flex items-center justify-center space-x-2 py-3 px-6 rounded-xl text-sm font-bold text-white shadow-md transition-all
-            ${saving 
-              ? 'bg-slate-400 cursor-not-allowed' 
-              : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg'
-            }`}
+          <IonButton 
+             expand="block" 
+             type="submit" 
+             disabled={saving} 
+             className="h-12 font-bold"
+             style={{ '--border-radius': '12px' }}
           >
-            {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Save className="h-5 w-5" /> <span>{t.settings.saveButton}</span></>}
-          </button>
+            {saving ? <IonSpinner /> : t.settings.saveButton}
+          </IonButton>
         </div>
       </form>
     </div>

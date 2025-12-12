@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { BillRecord, User, UserObject } from '../types';
 import { subscribeToHistory } from '../services/db';
-import { Loader2, Calendar, ChevronDown, ChevronUp, Zap, Droplets, Flame, TrendingUp, Layers } from 'lucide-react';
+import { Calendar, ChevronDown, ChevronUp, Zap, Droplets, Flame, TrendingUp, Layers } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
+import { IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonSpinner } from '@ionic/react';
 import { useLanguage } from '../i18n';
 
 interface HistoryProps {
@@ -29,10 +30,6 @@ const History: React.FC<HistoryProps> = ({ user, currentObject }) => {
     setExpandedId(expandedId === id ? null : id);
   };
 
-  const formatCurrency = (val: number) => {
-    return val.toLocaleString('uk-UA', { style: 'currency', currency: 'UAH', minimumFractionDigits: 0, maximumFractionDigits: 0 });
-  };
-  
   const formatFullCurrency = (val: number) => {
     return val.toLocaleString('uk-UA', { style: 'currency', currency: 'UAH' });
   };
@@ -40,7 +37,7 @@ const History: React.FC<HistoryProps> = ({ user, currentObject }) => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+        <IonSpinner color="primary" />
       </div>
     );
   }
@@ -73,33 +70,32 @@ const History: React.FC<HistoryProps> = ({ user, currentObject }) => {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       
-      <div className="flex items-center space-x-2 text-slate-500 text-sm">
-        <span>{t.history.historyFor}</span>
-        <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">{currentObject.name}</span>
-      </div>
-
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-        <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-6">{t.history.costBreakdown}</h3>
-        <div className="h-64 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-              <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748b'}} dy={10} />
-              <YAxis tickLine={false} axisLine={false} tick={{fontSize: 12, fill: '#64748b'}} />
-              <Tooltip 
-                cursor={{fill: '#f1f5f9'}}
-                contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'}} 
-                formatter={(value: number) => [formatFullCurrency(value)]} 
-              />
-              <Legend iconType="circle" wrapperStyle={{paddingTop: '20px', fontSize: '12px'}} />
-              <Bar dataKey={t.history.electricity} stackId="a" fill="#3b82f6" radius={[0, 0, 4, 4]} />
-              <Bar dataKey={t.history.water} stackId="a" fill="#06b6d4" />
-              <Bar dataKey={t.history.gas} stackId="a" fill="#f97316" />
-              <Bar dataKey={t.history.services} stackId="a" fill="#a855f7" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+      <IonCard className="m-0 shadow-none border border-slate-200 rounded-2xl">
+        <IonCardHeader>
+           <IonCardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wide">{t.history.costBreakdown}</IonCardTitle>
+        </IonCardHeader>
+        <IonCardContent>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748b'}} dy={10} />
+                <YAxis tickLine={false} axisLine={false} tick={{fontSize: 12, fill: '#64748b'}} />
+                <Tooltip 
+                  cursor={{fill: '#f1f5f9'}}
+                  contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'}} 
+                  formatter={(value: number) => [formatFullCurrency(value)]} 
+                />
+                <Legend iconType="circle" wrapperStyle={{paddingTop: '20px', fontSize: '12px'}} />
+                <Bar dataKey={t.history.electricity} stackId="a" fill="#3b82f6" radius={[0, 0, 4, 4]} />
+                <Bar dataKey={t.history.water} stackId="a" fill="#06b6d4" />
+                <Bar dataKey={t.history.gas} stackId="a" fill="#f97316" />
+                <Bar dataKey={t.history.services} stackId="a" fill="#a855f7" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </IonCardContent>
+      </IonCard>
 
       <div className="space-y-3">
         {bills.map((bill) => (
@@ -119,7 +115,7 @@ const History: React.FC<HistoryProps> = ({ user, currentObject }) => {
             </button>
 
             {expandedId === bill.id && (
-              <div className="bg-slate-50 border-t border-slate-100 p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-in slide-in-from-top-2 duration-200">
+              <div className="bg-slate-50 border-t border-slate-100 p-5 grid grid-cols-1 md:grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-200">
                 
                 {/* Standard Cards */}
                 <div className="flex flex-col p-3 bg-white rounded-lg border border-slate-100">
@@ -138,7 +134,6 @@ const History: React.FC<HistoryProps> = ({ user, currentObject }) => {
                     <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-500">{bill.waterConsumption} {t.common.units.m3}</span>
                   </div>
                   <div className="text-right border-t border-slate-50 pt-2 mt-auto">
-                     <p className="text-xs text-slate-400 mb-1">{t.history.fixed}: {formatFullCurrency(bill.breakdown.waterSubscriptionFee)}</p>
                      <p className="text-sm font-bold text-slate-900">{formatFullCurrency(bill.breakdown.waterCost + bill.breakdown.waterSubscriptionFee)}</p>
                   </div>
                 </div>
@@ -149,7 +144,6 @@ const History: React.FC<HistoryProps> = ({ user, currentObject }) => {
                     <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-500">{bill.gasConsumption} {t.common.units.m3}</span>
                   </div>
                   <div className="text-right border-t border-slate-50 pt-2 mt-auto">
-                     <p className="text-xs text-slate-400 mb-1">{t.history.fixed}: {formatFullCurrency(bill.breakdown.gasDistributionFee)}</p>
                      <p className="text-sm font-bold text-slate-900">{formatFullCurrency(bill.breakdown.gasCost + bill.breakdown.gasDistributionFee)}</p>
                   </div>
                 </div>

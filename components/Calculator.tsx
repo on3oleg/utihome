@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { TariffRates, ConsumptionData, CostBreakdown, DEFAULT_TARIFFS, User, UserObject, CustomBillRecord } from '../types';
 import { getTariffs, saveBill, saveTariffs } from '../services/db';
-import { Zap, Droplets, Flame, Save, Loader2, Layers, BoxSelect, ArrowRight } from 'lucide-react';
+import { Zap, Droplets, Flame, Loader2, Layers, BoxSelect } from 'lucide-react';
+import { IonList, IonItem, IonInput, IonNote, IonButton, IonSpinner, IonLabel } from '@ionic/react';
 import { useLanguage } from '../i18n';
 
 interface CalculatorProps {
@@ -164,31 +165,32 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
 
   const formatCurrency = (val: number) => val.toLocaleString('uk-UA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   
-  if (loading) return <div className="flex justify-center h-64 items-center"><Loader2 className="h-8 w-8 animate-spin text-slate-400"/></div>;
+  if (loading) return <div className="flex justify-center h-64 items-center"><IonSpinner color="primary" /></div>;
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <div className="space-y-6">
       
       {/* SECTION 1: New Readings */}
       <section>
-        <h2 className="text-sm font-medium text-slate-500 mb-4">New readings</h2>
-        <div className="space-y-6">
+        <h2 className="text-sm font-medium text-slate-500 mb-4 pl-1">New readings</h2>
+        <IonList lines="none" className="bg-transparent space-y-4">
 
           {/* Electricity Row */}
-          <div className="flex items-start gap-4">
-            <Zap className="h-7 w-7 text-black shrink-0 mt-1" strokeWidth={1.5} />
+          <div className="flex items-start gap-3">
+            <Zap className="h-7 w-7 text-black shrink-0 mt-3" strokeWidth={1.5} />
             <div className="flex-1">
-              <div className="bg-slate-200 rounded-lg flex items-center px-4 py-3">
-                <input 
-                   type="number"
-                   value={currentReadings.electricity}
-                   onChange={(e) => handleInputChange('electricity', e.target.value)}
-                   placeholder={rates.lastReadings.electricity.toString()}
-                   className="bg-transparent w-full text-lg font-medium text-slate-800 focus:outline-none placeholder:text-slate-400"
-                />
-                <span className="text-slate-500 text-sm ml-2 font-medium">kWh</span>
-              </div>
-              <div className="flex justify-between mt-1 px-1">
+               {/* Ionic Item styled to look like the gray box */}
+               <IonItem className="rounded-xl overflow-hidden" style={{ '--background': '#f1f5f9', '--padding-start': '16px' }}>
+                  <IonInput
+                    type="number"
+                    value={currentReadings.electricity}
+                    onIonInput={(e) => handleInputChange('electricity', e.detail.value!)}
+                    placeholder={rates.lastReadings.electricity.toString()}
+                    className="text-lg font-bold"
+                  ></IonInput>
+                  <IonNote slot="end" className="text-slate-500 font-medium">kWh</IonNote>
+               </IonItem>
+               <div className="flex justify-between mt-1 px-1">
                  <span className="text-xs text-slate-400">Rate: {rates.electricityRate}</span>
               </div>
             </div>
@@ -199,21 +201,21 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
           </div>
 
           {/* Water Row */}
-          <div className="flex items-start gap-4">
-            <Droplets className="h-7 w-7 text-black shrink-0 mt-1" strokeWidth={1.5} />
+          <div className="flex items-start gap-3">
+            <Droplets className="h-7 w-7 text-black shrink-0 mt-3" strokeWidth={1.5} />
             <div className="flex-1">
-              <div className="bg-slate-200 rounded-lg flex items-center px-4 py-3">
-                <input 
-                   type="number"
-                   value={currentReadings.water}
-                   onChange={(e) => handleInputChange('water', e.target.value)}
-                   placeholder={rates.lastReadings.water.toString()}
-                   className="bg-transparent w-full text-lg font-medium text-slate-800 focus:outline-none placeholder:text-slate-400"
-                />
-                <span className="text-slate-500 text-sm ml-2 font-medium">m³</span>
-              </div>
+               <IonItem className="rounded-xl overflow-hidden" style={{ '--background': '#f1f5f9', '--padding-start': '16px' }}>
+                  <IonInput
+                    type="number"
+                    value={currentReadings.water}
+                    onIonInput={(e) => handleInputChange('water', e.detail.value!)}
+                    placeholder={rates.lastReadings.water.toString()}
+                    className="text-lg font-bold"
+                  ></IonInput>
+                  <IonNote slot="end" className="text-slate-500 font-medium">m³</IonNote>
+               </IonItem>
                <div className="flex justify-between mt-1 px-1">
-                 <span className="text-xs text-slate-400">+ fixed fee: {rates.waterSubscriptionFee}</span>
+                 <span className="text-xs text-slate-400">+ fixed: {rates.waterSubscriptionFee}</span>
               </div>
             </div>
              <div className="text-right pt-2 min-w-[70px]">
@@ -223,21 +225,21 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
           </div>
 
           {/* Gas Row */}
-          <div className="flex items-start gap-4">
-            <Flame className="h-7 w-7 text-black shrink-0 mt-1" strokeWidth={1.5} />
+          <div className="flex items-start gap-3">
+            <Flame className="h-7 w-7 text-black shrink-0 mt-3" strokeWidth={1.5} />
              <div className="flex-1">
-              <div className="bg-slate-200 rounded-lg flex items-center px-4 py-3">
-                <input 
-                   type="number"
-                   value={currentReadings.gas}
-                   onChange={(e) => handleInputChange('gas', e.target.value)}
-                   placeholder={rates.lastReadings.gas.toString()}
-                   className="bg-transparent w-full text-lg font-medium text-slate-800 focus:outline-none placeholder:text-slate-400"
-                />
-                <span className="text-slate-500 text-sm ml-2 font-medium">m³</span>
-              </div>
+              <IonItem className="rounded-xl overflow-hidden" style={{ '--background': '#f1f5f9', '--padding-start': '16px' }}>
+                  <IonInput
+                    type="number"
+                    value={currentReadings.gas}
+                    onIonInput={(e) => handleInputChange('gas', e.detail.value!)}
+                    placeholder={rates.lastReadings.gas.toString()}
+                    className="text-lg font-bold"
+                  ></IonInput>
+                  <IonNote slot="end" className="text-slate-500 font-medium">m³</IonNote>
+               </IonItem>
                <div className="flex justify-between mt-1 px-1">
-                 <span className="text-xs text-slate-400">+ fixed fee: {rates.gasDistributionFee}</span>
+                 <span className="text-xs text-slate-400">+ fixed: {rates.gasDistributionFee}</span>
               </div>
             </div>
              <div className="text-right pt-2 min-w-[70px]">
@@ -246,21 +248,21 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
             </div>
           </div>
 
-          {/* Custom Metered Fields */}
+          {/* Custom Fields */}
           {rates.customFields.filter(f => f.type === 'rate').map(field => (
-             <div key={field.id} className="flex items-start gap-4">
-                <Layers className="h-7 w-7 text-black shrink-0 mt-1" strokeWidth={1.5} />
+             <div key={field.id} className="flex items-start gap-3">
+                <Layers className="h-7 w-7 text-black shrink-0 mt-3" strokeWidth={1.5} />
                 <div className="flex-1">
-                  <div className="bg-slate-200 rounded-lg flex items-center px-4 py-3">
-                    <input 
-                       type="number"
-                       value={customReadings[field.id] || ''}
-                       onChange={(e) => handleCustomReadingChange(field.id, e.target.value)}
-                       placeholder={(rates.lastReadings[field.id] || 0).toString()}
-                       className="bg-transparent w-full text-lg font-medium text-slate-800 focus:outline-none placeholder:text-slate-400"
-                    />
-                    <span className="text-slate-500 text-sm ml-2 font-medium">{field.unit}</span>
-                  </div>
+                  <IonItem className="rounded-xl overflow-hidden" style={{ '--background': '#f1f5f9', '--padding-start': '16px' }}>
+                      <IonInput
+                        type="number"
+                        value={customReadings[field.id] || ''}
+                        onIonInput={(e) => handleCustomReadingChange(field.id, e.detail.value!)}
+                        placeholder={(rates.lastReadings[field.id] || 0).toString()}
+                        className="text-lg font-bold"
+                      ></IonInput>
+                      <IonNote slot="end" className="text-slate-500 font-medium">{field.unit}</IonNote>
+                  </IonItem>
                   <div className="mt-1 px-1"><span className="text-xs text-slate-400">{field.name}</span></div>
                 </div>
                  <div className="text-right pt-2 min-w-[70px]">
@@ -268,15 +270,14 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
                 </div>
              </div>
           ))}
-
-        </div>
+        </IonList>
       </section>
 
       <hr className="border-slate-100" />
 
       {/* SECTION 2: Bill */}
       <section>
-        <h2 className="text-sm font-medium text-slate-500 mb-4">Bill</h2>
+        <h2 className="text-sm font-medium text-slate-500 mb-4 pl-1">Bill</h2>
         <div className="space-y-4 px-2">
           
           <div className="flex justify-between items-center">
@@ -326,16 +327,15 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
            </div>
         </div>
 
-        <button
+        <IonButton
+          expand="block"
           onClick={handleSave}
           disabled={saving || totalCost <= 0}
-          className={`w-full py-4 rounded-xl text-lg font-semibold flex items-center justify-center space-x-2 transition-all
-            ${saving || totalCost <= 0 
-              ? 'bg-slate-100 text-slate-300' 
-              : 'bg-black text-white active:scale-[0.98]'}`}
+          className="ion-margin-top text-lg font-semibold h-14"
+          style={{ '--border-radius': '12px', '--background': '#000000', '--color': '#ffffff' }}
         >
-          {saving ? <Loader2 className="h-6 w-6 animate-spin" /> : <span>Save Bill</span>}
-        </button>
+          {saving ? <IonSpinner name="crescent" /> : "Save Bill"}
+        </IonButton>
 
       </section>
     </div>

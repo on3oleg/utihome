@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { loginUser, registerUser } from '../services/db';
 import { User } from '../types';
-import { Zap, Loader2, Lock, Mail, UserPlus, LogIn } from 'lucide-react';
+import { Zap, Lock, Mail, UserPlus, LogIn } from 'lucide-react';
+import { IonPage, IonContent, IonInput, IonButton, IonSpinner, IonItem, IonIcon, IonText } from '@ionic/react';
 import { useLanguage } from '../i18n';
 
 interface AuthProps {
@@ -42,95 +43,81 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-4">
-      <div className="mb-8 text-center animate-in fade-in zoom-in duration-500">
-        <div className="bg-indigo-600 h-16 w-16 rounded-2xl flex items-center justify-center mx-auto shadow-lg mb-4">
-          <Zap className="h-8 w-8 text-yellow-300" />
-        </div>
-        <h1 className="text-3xl font-bold text-slate-800 tracking-tight">UtiHome</h1>
-        <p className="text-slate-500 mt-2">{t.layout.subtitle}</p>
-      </div>
-
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-slate-100 overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
-        <div className="p-8">
-          <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">
-            {isLogin ? t.auth.welcomeBack : t.auth.createAccount}
-          </h2>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">{t.auth.email}</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                  <Mail className="h-5 w-5" />
-                </div>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-slate-50 focus:bg-white"
-                  placeholder="name@example.com"
-                />
-              </div>
+    <IonPage>
+      <IonContent className="ion-padding">
+        <div className="min-h-full flex flex-col justify-center items-center">
+          <div className="mb-8 text-center animate-in fade-in zoom-in duration-500">
+            <div className="bg-indigo-600 h-16 w-16 rounded-2xl flex items-center justify-center mx-auto shadow-lg mb-4">
+              <Zap className="h-8 w-8 text-yellow-300" />
             </div>
+            <h1 className="text-3xl font-bold text-slate-800 tracking-tight">UtiHome</h1>
+            <p className="text-slate-500 mt-2">{t.layout.subtitle}</p>
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">{t.auth.password}</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                  <Lock className="h-5 w-5" />
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden p-6">
+            <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">
+              {isLogin ? t.auth.welcomeBack : t.auth.createAccount}
+            </h2>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              
+              <IonItem lines="full" className="rounded-xl border border-slate-200" style={{ '--background': '#f8fafc' }}>
+                 <Mail className="text-slate-400 mr-2 h-5 w-5" slot="start" />
+                 <IonInput 
+                    type="email" 
+                    placeholder="name@example.com" 
+                    value={email}
+                    onIonInput={e => setEmail(e.detail.value!)}
+                    required
+                 />
+              </IonItem>
+
+              <IonItem lines="full" className="rounded-xl border border-slate-200" style={{ '--background': '#f8fafc' }}>
+                 <Lock className="text-slate-400 mr-2 h-5 w-5" slot="start" />
+                 <IonInput 
+                    type="password" 
+                    placeholder="••••••••" 
+                    value={password}
+                    onIonInput={e => setPassword(e.detail.value!)}
+                    required
+                 />
+              </IonItem>
+
+              {error && (
+                <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg text-center">
+                  {error}
                 </div>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-slate-50 focus:bg-white"
-                  placeholder="••••••••"
-                />
-              </div>
-            </div>
-
-            {error && (
-              <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg text-center">
-                {error}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center space-x-2"
-            >
-              {loading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <>
-                  {isLogin ? <LogIn className="h-5 w-5" /> : <UserPlus className="h-5 w-5" />}
-                  <span>{isLogin ? t.auth.signInAction : t.auth.signUpAction}</span>
-                </>
               )}
-            </button>
-          </form>
+
+              <IonButton 
+                expand="block" 
+                type="submit" 
+                disabled={loading}
+                className="h-12 font-bold"
+                style={{ '--border-radius': '12px' }}
+              >
+                {loading ? <IonSpinner /> : (isLogin ? t.auth.signInAction : t.auth.signUpAction)}
+              </IonButton>
+            </form>
+            
+            <div className="mt-6 text-center">
+              <p className="text-sm text-slate-600">
+                {isLogin ? t.auth.noAccount : t.auth.hasAccount}{" "}
+                <button
+                  onClick={() => {
+                    setIsLogin(!isLogin);
+                    setError(null);
+                  }}
+                  className="font-bold text-indigo-600 hover:text-indigo-700"
+                >
+                  {isLogin ? t.auth.signUpAction : t.auth.signInAction}
+                </button>
+              </p>
+            </div>
+          </div>
         </div>
-        
-        <div className="bg-slate-50 p-4 text-center border-t border-slate-100">
-          <p className="text-sm text-slate-600">
-            {isLogin ? t.auth.noAccount : t.auth.hasAccount}{" "}
-            <button
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setError(null);
-              }}
-              className="font-bold text-indigo-600 hover:text-indigo-700"
-            >
-              {isLogin ? t.auth.signUpAction : t.auth.signInAction}
-            </button>
-          </p>
-        </div>
-      </div>
-    </div>
+      </IonContent>
+    </IonPage>
   );
 };
 

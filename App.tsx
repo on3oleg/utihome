@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { IonApp, IonLoading, IonContent, IonPage } from '@ionic/react';
 import Layout from './components/Layout';
 import Calculator from './components/Calculator';
 import Settings from './components/Settings';
@@ -7,14 +8,14 @@ import Auth from './components/Auth';
 import ObjectManager from './components/ObjectManager';
 import { getObjects, createObject, restoreSession, saveSession, clearSession } from './services/db';
 import { ViewState, User, UserObject } from './types';
-import { Loader2, User as UserIcon, LogOut, Globe } from 'lucide-react';
+import { User as UserIcon, LogOut, Globe } from 'lucide-react';
 import { LanguageProvider, useLanguage, Language } from './i18n';
 
-// Simple Profile Component internal to App for now
+// Simple Profile Component
 const UserProfile: React.FC<{ user: User, onLogout: () => void }> = ({ user, onLogout }) => {
   const { setLanguage, language, t } = useLanguage();
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 p-4">
        <div className="flex flex-col items-center justify-center py-10">
           <div className="h-24 w-24 bg-slate-100 rounded-full flex items-center justify-center mb-4">
              <UserIcon className="h-12 w-12 text-slate-400" />
@@ -61,7 +62,6 @@ const UtiHomeApp: React.FC = () => {
   const [showObjectManager, setShowObjectManager] = useState(false);
   const { t } = useLanguage();
 
-  // 1. Initial Session Restore
   useEffect(() => {
     const initSession = async () => {
       try {
@@ -78,7 +78,6 @@ const UtiHomeApp: React.FC = () => {
     initSession();
   }, []);
 
-  // 2. Fetch Objects when User is Set
   useEffect(() => {
     if (user) {
       fetchObjects();
@@ -95,16 +94,12 @@ const UtiHomeApp: React.FC = () => {
       const objs = await getObjects(user.id);
       setObjects(objs);
       
-      // Auto-select first object or create default if none
       if (objs.length > 0) {
-        // If we already have one selected and it's in the list, keep it
-        // Otherwise pick the first one
         setCurrentObject(prev => {
           if (prev && objs.find(o => o.id === prev.id)) return prev;
           return objs[0];
         });
       } else {
-        // Create a default object if none exist
         const defObj = await createObject(user.id, "My Home", "Main Residence");
         setObjects([defObj]);
         setCurrentObject(defObj);
@@ -158,49 +153,50 @@ const UtiHomeApp: React.FC = () => {
   // Show loading spinner while checking for session
   if (isSessionLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <Loader2 className="h-10 w-10 animate-spin text-slate-900" />
-      </div>
+      <IonApp>
+        <IonLoading isOpen={true} message={t.common.loading} />
+      </IonApp>
     );
   }
 
-  // Show Auth screen if no user is found after session check
+  // Show Auth screen if no user is found
   if (!user) {
-    return <Auth onLogin={handleLogin} />;
-  }
-
-  // Show loading spinner while objects are being fetched for logged-in user
-  if (loadingObjects && !currentObject) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <Loader2 className="h-10 w-10 animate-spin text-slate-900" />
-      </div>
+      <IonApp>
+        <Auth onLogin={handleLogin} />
+      </IonApp>
     );
   }
 
   return (
-    <>
-      <Layout 
-        user={user}
-        currentView={currentView} 
-        onChangeView={setCurrentView}
-        onLogout={handleLogout}
-        objects={objects}
-        currentObject={currentObject}
-        onObjectChange={setCurrentObject}
-        onAddObject={() => setShowObjectManager(true)}
-      >
-        {renderContent()}
-      </Layout>
+    <IonApp>
+      {loadingObjects && !currentObject ? (
+         <IonLoading isOpen={true} message={t.common.loading} />
+      ) : (
+        <>
+          <Layout 
+            user={user}
+            currentView={currentView} 
+            onChangeView={setCurrentView}
+            onLogout={handleLogout}
+            objects={objects}
+            currentObject={currentObject}
+            onObjectChange={setCurrentObject}
+            onAddObject={() => setShowObjectManager(true)}
+          >
+            {renderContent()}
+          </Layout>
 
-      {showObjectManager && (
-        <ObjectManager 
-          user={user} 
-          onObjectCreated={handleObjectCreated} 
-          onClose={() => setShowObjectManager(false)} 
-        />
+          {showObjectManager && (
+            <ObjectManager 
+              user={user} 
+              onObjectCreated={handleObjectCreated} 
+              onClose={() => setShowObjectManager(false)} 
+            />
+          )}
+        </>
       )}
-    </>
+    </IonApp>
   );
 };
 
