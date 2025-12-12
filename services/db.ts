@@ -21,22 +21,22 @@ localforage.config({
 // Observer for history changes
 const listeners: ((bills: BillRecord[]) => void)[] = [];
 
-// Debounce helper for persistence to avoid thrashing disk
+// Helper for persistence
 let saveTimeout: any = null;
-const persistDB = () => {
+
+// Modified to be async and awaitable for critical operations
+const persistDB = async () => {
   if (!db) return;
   
   if (saveTimeout) clearTimeout(saveTimeout);
   
-  saveTimeout = setTimeout(async () => {
-    try {
-      const data = db.export();
-      // localforage handles Uint8Array natively
-      await localforage.setItem(DB_STORAGE_KEY, data);
-    } catch (e) {
-      console.error("Failed to persist DB:", e);
-    }
-  }, 500);
+  try {
+    const data = db.export();
+    // localforage handles Uint8Array natively
+    await localforage.setItem(DB_STORAGE_KEY, data);
+  } catch (e) {
+    console.error("Failed to persist DB:", e);
+  }
 };
 
 const notifyListeners = async (objectId: number) => {
@@ -176,7 +176,7 @@ const _initializeDB = async () => {
       }
     }
 
-    persistDB();
+    await persistDB();
 
   } catch (err) {
     console.error("Failed to initialize SQLite", err);
@@ -219,7 +219,7 @@ export const registerUser = async (email: string, password: string): Promise<Use
     const stmt = db.prepare("INSERT INTO users (email, password) VALUES (?, ?)");
     stmt.run([email, password]);
     stmt.free();
-    persistDB();
+    await persistDB();
     return loginUser(email, password);
   } catch (e) {
     console.error("Registration failed", e);
@@ -266,7 +266,7 @@ export const createObject = async (userId: number, name: string, description: st
   rateStmt.run([newId, JSON.stringify(DEFAULT_TARIFFS)]);
   rateStmt.free();
 
-  persistDB();
+  await persistDB();
 
   return { id: newId, userId, name, description };
 };
@@ -277,7 +277,7 @@ export const updateObject = async (id: number, name: string): Promise<void> => {
   const stmt = db.prepare("UPDATE objects SET name = ? WHERE id = ?");
   stmt.run([name, id]);
   stmt.free();
-  persistDB();
+  await persistDB();
 };
 
 // --- Data Services (Scoped by Object ID) ---
@@ -310,7 +310,7 @@ export const saveTariffs = async (objectId: number, rates: TariffRates): Promise
   const stmt = db.prepare("INSERT OR REPLACE INTO tariffs (id, data) VALUES (?, ?)");
   stmt.run([objectId, JSON.stringify(rates)]);
   stmt.free();
-  persistDB();
+  await persistDB();
 };
 
 export const saveBill = async (objectId: number, userId: number, bill: Omit<BillRecord, 'id'>): Promise<void> => {
@@ -323,7 +323,7 @@ export const saveBill = async (objectId: number, userId: number, bill: Omit<Bill
   const stmt = db.prepare("INSERT INTO bills (user_id, object_id, date, totalCost, data) VALUES (?, ?, ?, ?, ?)");
   stmt.run([userId, objectId, timestamp, bill.totalCost, JSON.stringify(billWithObject)]);
   stmt.free();
-  persistDB();
+  await persistDB();
   
   notifyListeners(objectId);
 };
@@ -368,7 +368,7 @@ export const updateBillName = async (objectId: number, billId: string, newName: 
     updateStmt.run([JSON.stringify(billData), billId]);
     updateStmt.free();
     
-    persistDB();
+    await persistDB();
     notifyListeners(objectId);
   }
   fetchStmt.free();
@@ -409,7 +409,7 @@ export const updateBillHistoryServiceName = async (objectId: number, fieldId: st
   updateStmt.free();
   
   if (updatedCount > 0) {
-      persistDB();
+      await persistDB();
       notifyListeners(objectId);
   }
 };

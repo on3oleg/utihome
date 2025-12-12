@@ -116,7 +116,12 @@ const UtiHomeApp: React.FC = () => {
       
       if (objs.length > 0) {
         setCurrentObject(prev => {
-          if (prev && objs.find(o => o.id === prev.id)) return prev;
+          // If we have a previous object selected, try to find its fresh version from DB
+          if (prev) {
+            const found = objs.find(o => o.id === prev.id);
+            if (found) return found;
+          }
+          // Otherwise default to the first one
           return objs[0];
         });
       } else {
