@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { BillRecord, User, UserObject } from '../types';
 import { subscribeToHistory } from '../services/db';
-import { Calendar, ChevronDown, ChevronUp, Zap, Droplets, Flame, TrendingUp, Layers } from 'lucide-react';
+import { Calendar, ChevronDown, ChevronUp, Zap, Droplets, Flame, TrendingUp, Box } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { IonSpinner } from '@ionic/react';
 import { useLanguage } from '../i18n';
@@ -158,7 +158,7 @@ const History: React.FC<HistoryProps> = ({ user, currentObject }) => {
                 {(bill.customRecords || []).map((rec) => (
                    <div key={rec.fieldId} className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100">
                     <div className="flex items-center space-x-3">
-                      <Layers className="h-5 w-5 text-purple-500"/>
+                      <Box className="h-5 w-5 text-slate-500"/>
                       <span className="text-sm font-bold text-slate-700 truncate max-w-[150px]">{rec.name}</span>
                     </div>
                     <div className="text-right">

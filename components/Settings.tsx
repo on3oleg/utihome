@@ -1,19 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TariffRates, DEFAULT_TARIFFS, User, UserObject, CustomFieldConfig } from '../types';
-import { getTariffs, saveTariffs } from '../services/db';
-import { Save, CheckCircle2, Gauge, Coins, Plus, Trash2, Layers, Globe, AlertCircle } from 'lucide-react';
+import { getTariffs, saveTariffs, updateObject, updateBillHistoryServiceName } from '../services/db';
+import { Save, CheckCircle2, Gauge, Coins, Plus, Trash2, Layers, Globe, AlertCircle, Box, Pencil, Check, X } from 'lucide-react';
 import { useLanguage, Language } from '../i18n';
 import { IonInput, IonItem, IonList, IonListHeader, IonLabel, IonButton, IonSelect, IonSelectOption, IonNote, IonSpinner } from '@ionic/react';
 
 interface SettingsProps {
   user: User;
   currentObject: UserObject;
+  onObjectUpdated?: (obj: UserObject) => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
+const Settings: React.FC<SettingsProps> = ({ user, currentObject, onObjectUpdated }) => {
   const [rates, setRates] = useState<TariffRates>(DEFAULT_TARIFFS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  
+  // Object Renaming State
+  const [objectName, setObjectName] = useState(currentObject.name);
+  const [isEditingName, setIsEditingName] = useState(false);
   
   // Changed from string to object for explicit type checking
   const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
@@ -24,6 +29,9 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
   // We track the raw string values for inputs
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
 
+  // To detect renames for history updates
+  const originalCustomFieldsRef = useRef<CustomFieldConfig[]>([]);
+
   // New Field State
   const [newFieldName, setNewFieldName] = useState('');
   const [newFieldType, setNewFieldType] = useState<'rate' | 'fee'>('fee');
@@ -32,6 +40,10 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
   const [newFieldStartReading, setNewFieldStartReading] = useState('');
 
   const sanitizeNumber = (val: string) => val.replace(',', '.');
+
+  useEffect(() => {
+    setObjectName(currentObject.name);
+  }, [currentObject.name]);
 
   useEffect(() => {
     const fetchRates = async () => {
@@ -49,6 +61,7 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
           } : DEFAULT_TARIFFS;
           
           setRates(mergedData);
+          originalCustomFieldsRef.current = JSON.parse(JSON.stringify(mergedData.customFields));
           
           // Initialize input strings
           const initials: Record<string, string> = {
@@ -108,6 +121,13 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
       customFields: prev.customFields.map(f => f.id === id ? { ...f, price: parseFloat(sanitized) || 0 } : f)
     }));
   };
+  
+  const updateCustomName = (id: string, name: string) => {
+    setRates(prev => ({
+      ...prev,
+      customFields: prev.customFields.map(f => f.id === id ? { ...f, name: name } : f)
+    }));
+  };
 
   // Custom Fields Logic
   const handleAddCustomField = () => {
@@ -163,10 +183,33 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
     e.preventDefault();
     setSaving(true);
     try {
+      // 1. Save Tariffs
       await saveTariffs(currentObject.id, rates);
+      
+      // 2. Check and Rename Object
+      if (objectName.trim() && objectName !== currentObject.name) {
+         await updateObject(currentObject.id, objectName);
+         if (onObjectUpdated) {
+            onObjectUpdated({ ...currentObject, name: objectName });
+         }
+      }
+      
+      // 3. Check and Rename Custom Fields in History
+      for (const field of rates.customFields) {
+         const initial = originalCustomFieldsRef.current.find(f => f.id === field.id);
+         if (initial && initial.name !== field.name) {
+             // Name changed, update history asynchronously
+             await updateBillHistoryServiceName(currentObject.id, field.id, field.name);
+         }
+      }
+      // Update ref to current state to prevent redundant updates on next save
+      originalCustomFieldsRef.current = JSON.parse(JSON.stringify(rates.customFields));
+      
       setStatus({ type: 'success', message: t.settings.saveSuccess });
       setTimeout(() => setStatus(null), 3000);
+      setIsEditingName(false);
     } catch (err) {
+      console.error(err);
       setStatus({ type: 'error', message: t.settings.saveError });
     } finally {
       setSaving(false);
@@ -185,13 +228,34 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10 space-y-8">
       
       <div className="flex justify-between items-center px-2">
-        <div className="flex items-center space-x-2 text-slate-500 text-sm">
+        <div className="flex items-center space-x-2 text-slate-500 text-sm flex-1 mr-4">
           <span>{t.settings.settingsFor}</span>
-          <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">{currentObject.name}</span>
+          
+          {isEditingName ? (
+            <div className="flex items-center gap-1 flex-1 max-w-[200px]">
+              <input 
+                value={objectName}
+                onChange={(e) => setObjectName(e.target.value)}
+                className="bg-white border border-indigo-200 rounded px-2 py-0.5 text-slate-700 font-bold w-full text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                autoFocus
+              />
+            </div>
+          ) : (
+             <div className="flex items-center gap-2 group">
+                <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded truncate max-w-[140px]">{objectName}</span>
+                <button 
+                  type="button" 
+                  onClick={() => setIsEditingName(true)} 
+                  className="text-slate-300 hover:text-indigo-500 transition-colors"
+                >
+                  <Pencil className="h-3 w-3" />
+                </button>
+             </div>
+          )}
         </div>
 
         {/* Language Selector */}
-        <div className="flex items-center space-x-2 bg-white rounded-lg px-2 py-1 shadow-sm border border-slate-200">
+        <div className="flex items-center space-x-2 bg-white rounded-lg px-2 py-1 shadow-sm border border-slate-200 shrink-0">
            <Globe className="h-4 w-4 text-slate-400" />
            <select 
              value={language}
@@ -309,8 +373,19 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
              {rates.customFields.map((field) => (
                 <div key={field.id} className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
                    <div className="flex justify-between items-center mb-2">
-                      <span className="font-bold text-slate-800">{field.name}</span>
-                      <button type="button" onClick={() => handleDeleteCustomField(field.id)} className="text-red-400 bg-white p-1 rounded-full shadow-sm">
+                      <div className="flex items-center gap-2 flex-1 mr-2">
+                        <div className="p-1.5 bg-slate-100 rounded-lg border border-slate-200 shrink-0">
+                           <Box className="h-4 w-4 text-slate-500" strokeWidth={2} />
+                        </div>
+                        {/* Editable Name Field */}
+                        <input 
+                           type="text" 
+                           value={field.name}
+                           onChange={(e) => updateCustomName(field.id, e.target.value)}
+                           className="font-bold text-slate-800 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-indigo-500 focus:outline-none w-full"
+                        />
+                      </div>
+                      <button type="button" onClick={() => handleDeleteCustomField(field.id)} className="text-red-400 bg-white p-1 rounded-full shadow-sm hover:bg-red-50 transition-colors">
                          <Trash2 className="h-4 w-4" />
                       </button>
                    </div>

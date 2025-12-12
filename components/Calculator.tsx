@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TariffRates, ConsumptionData, CostBreakdown, DEFAULT_TARIFFS, User, UserObject, CustomBillRecord } from '../types';
 import { getTariffs, saveBill, saveTariffs } from '../services/db';
-import { Zap, Droplets, Flame, Loader2, Layers, BoxSelect } from 'lucide-react';
+import { Zap, Droplets, Flame, Loader2, Box } from 'lucide-react';
 import { IonList, IonItem, IonInput, IonNote, IonButton, IonSpinner, IonLabel } from '@ionic/react';
 import { useLanguage } from '../i18n';
 
@@ -279,7 +279,7 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
           {/* Custom Fields - Rate Type */}
           {rates.customFields.filter(f => f.type === 'rate').map(field => (
              <div key={field.id} className="flex items-start gap-3">
-                <Layers className="h-7 w-7 text-black shrink-0 mt-3" strokeWidth={1.5} />
+                <Box className="h-7 w-7 text-black shrink-0 mt-3" strokeWidth={1.5} />
                 <div className="flex-1">
                   <IonItem className="rounded-xl overflow-hidden" style={{ '--background': '#f1f5f9', '--padding-start': '16px' }}>
                       <IonInput
@@ -307,7 +307,7 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
           {/* Custom Fields - Fee Type with Zero Price (Manual Input) */}
           {rates.customFields.filter(f => f.type === 'fee' && f.price === 0).map(field => (
              <div key={field.id} className="flex items-start gap-3">
-                <BoxSelect className="h-7 w-7 text-black shrink-0 mt-3" strokeWidth={1.5} />
+                <Box className="h-7 w-7 text-black shrink-0 mt-3" strokeWidth={1.5} />
                 <div className="flex-1">
                   <IonItem className="rounded-xl overflow-hidden" style={{ '--background': '#f1f5f9', '--padding-start': '16px' }}>
                       <IonInput
@@ -366,7 +366,7 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
           {customBillRecords.map(rec => (
             <div key={rec.fieldId} className="flex justify-between items-center">
                <div className="flex items-center gap-3">
-                  {rec.type === 'fee' ? <BoxSelect className="h-5 w-5 text-black" strokeWidth={1.5}/> : <Layers className="h-5 w-5 text-black" strokeWidth={1.5}/>}
+                  <Box className="h-5 w-5 text-black" strokeWidth={1.5}/>
                   <div>
                     <div className="text-lg font-medium leading-none">{formatCurrency(rec.cost)}</div>
                     <div className="text-xs text-slate-400 mt-1">{rec.name}</div>

@@ -271,6 +271,15 @@ export const createObject = async (userId: number, name: string, description: st
   return { id: newId, userId, name, description };
 };
 
+export const updateObject = async (id: number, name: string): Promise<void> => {
+  await ensureInitialized();
+  if (!db) throw new Error("DB not init");
+  const stmt = db.prepare("UPDATE objects SET name = ? WHERE id = ?");
+  stmt.run([name, id]);
+  stmt.free();
+  persistDB();
+};
+
 // --- Data Services (Scoped by Object ID) ---
 
 export const getTariffs = async (objectId: number): Promise<TariffRates | null> => {
@@ -336,6 +345,45 @@ const getBills = async (objectId: number): Promise<BillRecord[]> => {
   }
   stmt.free();
   return results;
+};
+
+// Helper to rename custom service in all history records
+export const updateBillHistoryServiceName = async (objectId: number, fieldId: string, newName: string): Promise<void> => {
+  await ensureInitialized();
+  if (!db) return;
+  
+  const bills = await getBills(objectId);
+  let updatedCount = 0;
+
+  const updateStmt = db.prepare("UPDATE bills SET data = ? WHERE id = ?");
+
+  for (const bill of bills) {
+     if (!bill.customRecords || bill.customRecords.length === 0) continue;
+     
+     let changed = false;
+     const newRecords = bill.customRecords.map(rec => {
+         if (rec.fieldId === fieldId && rec.name !== newName) {
+             changed = true;
+             return { ...rec, name: newName };
+         }
+         return rec;
+     });
+
+     if (changed) {
+         const newBill = { ...bill, customRecords: newRecords };
+         // Strip the ID as it shouldn't be in the JSON payload
+         const { id, ...billData } = newBill as any; 
+         
+         updateStmt.run([JSON.stringify(billData), bill.id]);
+         updatedCount++;
+     }
+  }
+  updateStmt.free();
+  
+  if (updatedCount > 0) {
+      persistDB();
+      notifyListeners(objectId);
+  }
 };
 
 export const subscribeToHistory = (objectId: number, callback: (bills: BillRecord[]) => void) => {

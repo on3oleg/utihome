@@ -136,6 +136,13 @@ const UtiHomeApp: React.FC = () => {
     setCurrentObject(newObj);
   };
 
+  const handleObjectUpdated = (updatedObj: UserObject) => {
+    setObjects(prev => prev.map(o => o.id === updatedObj.id ? updatedObj : o));
+    if (currentObject && currentObject.id === updatedObj.id) {
+      setCurrentObject(updatedObj);
+    }
+  };
+
   const handleLogin = (loggedInUser: User) => {
     setUser(loggedInUser);
     saveSession(loggedInUser);
@@ -162,7 +169,7 @@ const UtiHomeApp: React.FC = () => {
       case 'calculator':
         return <Calculator user={user} currentObject={currentObject} onSaved={() => setCurrentView('history')} />;
       case 'settings':
-        return <Settings user={user} currentObject={currentObject} />;
+        return <Settings user={user} currentObject={currentObject} onObjectUpdated={handleObjectUpdated} />;
       case 'history':
         return <History user={user} currentObject={currentObject} />;
       default:
