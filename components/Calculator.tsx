@@ -24,6 +24,7 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
   });
 
   const [customReadings, setCustomReadings] = useState<Record<string, string>>({});
+  const [manualFees, setManualFees] = useState<Record<string, string>>({});
   const [customBillRecords, setCustomBillRecords] = useState<CustomBillRecord[]>([]);
 
   // Consumption & Breakdown State
@@ -56,6 +57,7 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
           setRates(mergedData);
           setCurrentReadings({ electricity: '', water: '', gas: '' });
           setCustomReadings({});
+          setManualFees({});
         }
       } catch (err) {
         console.error("Error loading tariffs:", err);
@@ -99,7 +101,12 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
       let cons = 0;
 
       if (field.type === 'fee') {
-        cost = field.price;
+        if (field.price === 0) {
+           // If configured price is 0, use manual input
+           cost = safeNumber(manualFees[field.id]);
+        } else {
+           cost = field.price;
+        }
         records.push({ fieldId: field.id, name: field.name, type: 'fee', cost });
       } else if (field.type === 'rate') {
         const rawVal = customReadings[field.id];
@@ -115,7 +122,7 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
     setCustomBillRecords(records);
     setTotalCost(elecCost + waterCost + rates.waterSubscriptionFee + gasCost + rates.gasDistributionFee + customTotal);
 
-  }, [currentReadings, customReadings, rates]);
+  }, [currentReadings, customReadings, manualFees, rates]);
 
   const sanitizeInput = (val: string) => {
     // Replace comma with dot
@@ -128,6 +135,10 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
   
   const handleCustomReadingChange = (id: string, value: string) => {
     setCustomReadings(prev => ({ ...prev, [id]: sanitizeInput(value) }));
+  };
+
+  const handleManualFeeChange = (id: string, value: string) => {
+    setManualFees(prev => ({ ...prev, [id]: sanitizeInput(value) }));
   };
 
   const handleSave = async () => {
@@ -164,6 +175,7 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
       setRates(newRates);
       setCurrentReadings({ electricity: '', water: '', gas: '' });
       setCustomReadings({});
+      setManualFees({});
       onSaved();
     } catch (err) {
       console.error(err);
@@ -264,7 +276,7 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
             </div>
           </div>
 
-          {/* Custom Fields */}
+          {/* Custom Fields - Rate Type */}
           {rates.customFields.filter(f => f.type === 'rate').map(field => (
              <div key={field.id} className="flex items-start gap-3">
                 <Layers className="h-7 w-7 text-black shrink-0 mt-3" strokeWidth={1.5} />
@@ -288,6 +300,32 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
                 </div>
                  <div className="text-right pt-2 min-w-[50px]">
                    <div className="text-xs text-slate-400 mb-1 h-4 flex items-center justify-end"><span className="text-slate-600 font-medium">{rates.lastReadings[field.id] || 0}</span></div>
+                </div>
+             </div>
+          ))}
+
+          {/* Custom Fields - Fee Type with Zero Price (Manual Input) */}
+          {rates.customFields.filter(f => f.type === 'fee' && f.price === 0).map(field => (
+             <div key={field.id} className="flex items-start gap-3">
+                <BoxSelect className="h-7 w-7 text-black shrink-0 mt-3" strokeWidth={1.5} />
+                <div className="flex-1">
+                  <IonItem className="rounded-xl overflow-hidden" style={{ '--background': '#f1f5f9', '--padding-start': '16px' }}>
+                      <IonInput
+                        type="text"
+                        inputmode="decimal"
+                        value={manualFees[field.id] || ''}
+                        onIonInput={(e) => handleManualFeeChange(field.id, e.detail.value!)}
+                        placeholder="0.00"
+                        className="text-lg font-bold"
+                      ></IonInput>
+                      <IonNote slot="end" className="text-slate-500 font-medium">{t.common.currency}</IonNote>
+                  </IonItem>
+                  <div className="mt-1 px-1">
+                    <span className="text-xs text-slate-400">{field.name}</span>
+                  </div>
+                </div>
+                 <div className="text-right pt-2 min-w-[50px]">
+                   {/* No previous reading for fees */}
                 </div>
              </div>
           ))}
@@ -329,7 +367,10 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
             <div key={rec.fieldId} className="flex justify-between items-center">
                <div className="flex items-center gap-3">
                   {rec.type === 'fee' ? <BoxSelect className="h-5 w-5 text-black" strokeWidth={1.5}/> : <Layers className="h-5 w-5 text-black" strokeWidth={1.5}/>}
-                  <span className="text-lg font-medium">{formatCurrency(rec.cost)}</span>
+                  <div>
+                    <div className="text-lg font-medium leading-none">{formatCurrency(rec.cost)}</div>
+                    <div className="text-xs text-slate-400 mt-1">{rec.name}</div>
+                  </div>
                </div>
                {rec.type === 'rate' ? (
                   <span className="text-slate-400 text-sm">{rec.consumption?.toFixed(0)} {rec.unit}</span>

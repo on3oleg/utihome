@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TariffRates, DEFAULT_TARIFFS, User, UserObject, CustomFieldConfig } from '../types';
 import { getTariffs, saveTariffs } from '../services/db';
-import { Save, CheckCircle2, Gauge, Coins, Plus, Trash2, Layers, Globe } from 'lucide-react';
+import { Save, CheckCircle2, Gauge, Coins, Plus, Trash2, Layers, Globe, AlertCircle } from 'lucide-react';
 import { useLanguage, Language } from '../i18n';
 import { IonInput, IonItem, IonList, IonListHeader, IonLabel, IonButton, IonSelect, IonSelectOption, IonNote, IonSpinner } from '@ionic/react';
 
@@ -14,7 +14,10 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
   const [rates, setRates] = useState<TariffRates>(DEFAULT_TARIFFS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  
+  // Changed from string to object for explicit type checking
+  const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  
   const { t, language, setLanguage } = useLanguage();
 
   // Local state for inputs to allow comma editing before parsing
@@ -81,7 +84,7 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
     const sanitized = sanitizeNumber(rawValue);
     setInputValues(prev => ({ ...prev, [field]: sanitized }));
     setRates(prev => ({ ...prev, [field]: parseFloat(sanitized) || 0 }));
-    setMessage(null);
+    setStatus(null);
   };
 
   const updateReading = (field: string, rawValue: string) => {
@@ -94,7 +97,7 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
         [field]: parseFloat(sanitized) || 0
       }
     }));
-    setMessage(null);
+    setStatus(null);
   };
 
   const updateCustomPrice = (id: string, rawValue: string) => {
@@ -161,10 +164,10 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
     setSaving(true);
     try {
       await saveTariffs(currentObject.id, rates);
-      setMessage(t.settings.saveSuccess);
-      setTimeout(() => setMessage(null), 3000);
+      setStatus({ type: 'success', message: t.settings.saveSuccess });
+      setTimeout(() => setStatus(null), 3000);
     } catch (err) {
-      setMessage(t.settings.saveError);
+      setStatus({ type: 'error', message: t.settings.saveError });
     } finally {
       setSaving(false);
     }
@@ -375,49 +378,13 @@ const Settings: React.FC<SettingsProps> = ({ user, currentObject }) => {
            </div>
         </section>
 
-        {/* Standard Meter Readings Section */}
-        <section>
-           <div className="flex items-center space-x-2 mb-4 px-1">
-             <Gauge className="h-6 w-6 text-indigo-600" strokeWidth={1.5} />
-             <h3 className="text-lg font-bold text-slate-900">{t.settings.meterReadings}</h3>
-           </div>
-           
-           <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                 <div className="w-24 text-sm font-medium text-slate-600">{t.calculator.electricity}</div>
-                 <div className="flex-1">
-                    <IonItem className="rounded-xl overflow-hidden" style={{ '--background': '#f1f5f9', '--padding-start': '16px' }}>
-                       <IonInput type="text" inputmode="decimal" value={inputValues.reading_electricity} onIonInput={e => updateReading('electricity', e.detail.value!)} className="text-lg font-bold" />
-                       <IonNote slot="end">{t.common.units.kwh}</IonNote>
-                    </IonItem>
-                 </div>
-              </div>
-              <div className="flex items-center gap-4">
-                 <div className="w-24 text-sm font-medium text-slate-600">{t.calculator.water}</div>
-                 <div className="flex-1">
-                    <IonItem className="rounded-xl overflow-hidden" style={{ '--background': '#f1f5f9', '--padding-start': '16px' }}>
-                       <IonInput type="text" inputmode="decimal" value={inputValues.reading_water} onIonInput={e => updateReading('water', e.detail.value!)} className="text-lg font-bold" />
-                       <IonNote slot="end">{t.common.units.m3}</IonNote>
-                    </IonItem>
-                 </div>
-              </div>
-              <div className="flex items-center gap-4">
-                 <div className="w-24 text-sm font-medium text-slate-600">{t.calculator.gas}</div>
-                 <div className="flex-1">
-                    <IonItem className="rounded-xl overflow-hidden" style={{ '--background': '#f1f5f9', '--padding-start': '16px' }}>
-                       <IonInput type="text" inputmode="decimal" value={inputValues.reading_gas} onIonInput={e => updateReading('gas', e.detail.value!)} className="text-lg font-bold" />
-                       <IonNote slot="end">{t.common.units.m3}</IonNote>
-                    </IonItem>
-                 </div>
-              </div>
-           </div>
-        </section>
-
         <div className="pt-2 sticky bottom-0 bg-slate-50 pb-4">
-           {message && (
-            <div className={`mb-4 p-3 rounded-xl flex items-center text-sm ${message.includes('success') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-              {message.includes('success') && <CheckCircle2 className="h-4 w-4 mr-2" />}
-              {message}
+           {status && (
+            <div className={`mb-4 p-3 rounded-xl flex items-center text-sm font-medium ${
+              status.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+            }`}>
+              {status.type === 'success' ? <CheckCircle2 className="h-5 w-5 mr-2" /> : <AlertCircle className="h-5 w-5 mr-2" />}
+              {status.message}
             </div>
           )}
 
