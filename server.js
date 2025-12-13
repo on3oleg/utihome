@@ -15,7 +15,6 @@ app.use(express.json());
 
 // Connection String
 // SECURITY: The connection string is now exclusively loaded from the environment variable.
-// Hardcoding credentials causes GitHub push rejections due to secret scanning.
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
@@ -30,12 +29,51 @@ const pool = new Pool({
   } : undefined
 });
 
-// Check connection on startup
+// Initialize Database Schema
+const initDb = async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL
+      );
+      
+      CREATE TABLE IF NOT EXISTS objects (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
+        name TEXT NOT NULL,
+        description TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS tariffs (
+        object_id INTEGER PRIMARY KEY,
+        data JSONB,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS bills (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
+        object_id INTEGER,
+        date BIGINT,
+        total_cost NUMERIC,
+        data JSONB
+      );
+    `);
+    console.log("Database schema checked/initialized successfully.");
+  } catch (err) {
+    console.error("Error initializing database schema:", err);
+  }
+};
+
+// Check connection and init DB on startup
 pool.query('SELECT NOW()', (err, res) => {
   if (err) {
     console.error('Database connection error. Ensure DATABASE_URL is correct.', err.message);
   } else {
     console.log('Connected to PostgreSQL database successfully.');
+    initDb();
   }
 });
 
