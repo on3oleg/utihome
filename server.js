@@ -62,14 +62,7 @@ const initDb = async () => {
       );
     `);
     
-    // Seed default user
-    await pool.query(`
-      INSERT INTO users (email, password) 
-      VALUES ('on3oleg@gmail.com', '123456') 
-      ON CONFLICT (email) DO NOTHING;
-    `);
-    
-    console.log("Database schema checked/initialized successfully. Default user ensured.");
+    console.log("Database schema checked/initialized successfully.");
   } catch (err) {
     console.error("Error initializing database schema:", err);
   }
