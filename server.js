@@ -13,20 +13,20 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Connection String
-// SECURITY: The connection string is now exclusively loaded from the environment variable.
+// Connection String logic
 const connectionString = process.env.DATABASE_URL;
 
-if (!connectionString) {
-  console.error("ERROR: DATABASE_URL environment variable is not set.");
-  console.error("Please configure your database connection string in your environment variables.");
-}
+// SSL Configuration for Aiven
+const sslConfig = connectionString && connectionString.includes('sslmode=require') 
+  ? {
+      rejectUnauthorized: process.env.DB_CA_CERT ? true : false,
+      ca: process.env.DB_CA_CERT ? process.env.DB_CA_CERT : undefined
+    } 
+  : false;
 
 const pool = new Pool({
   connectionString,
-  ssl: connectionString && connectionString.includes('sslmode=require') ? {
-    rejectUnauthorized: false
-  } : undefined
+  ssl: sslConfig
 });
 
 // Initialize Database Schema
@@ -61,26 +61,26 @@ const initDb = async () => {
         data JSONB
       );
     `);
-    
-    console.log("Database schema checked/initialized successfully.");
+    console.log("Database schema initialized.");
   } catch (err) {
-    console.error("Error initializing database schema:", err);
+    console.error("Schema Init Error:", err.message);
   }
 };
 
-// Check connection and init DB on startup
-pool.query('SELECT NOW()', (err, res) => {
-  if (err) {
-    console.error('Database connection error. Ensure DATABASE_URL is correct.', err.message);
-  } else {
-    console.log('Connected to PostgreSQL database successfully.');
-    initDb();
-  }
-});
+// Check connection and init DB
+if (connectionString) {
+  pool.query('SELECT NOW()', (err) => {
+    if (err) {
+      console.error('Database connection error:', err.message);
+    } else {
+      console.log('Connected to PostgreSQL.');
+      initDb();
+    }
+  });
+}
 
 // --- API Routes ---
 
-// Auth
 app.post('/api/auth/register', async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -109,7 +109,6 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// Objects
 app.get('/api/objects', async (req, res) => {
   const userId = req.headers['x-user-id'];
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
@@ -147,7 +146,6 @@ app.put('/api/objects/:id', async (req, res) => {
   }
 });
 
-// Tariffs
 app.get('/api/objects/:id/tariffs', async (req, res) => {
   try {
     const result = await pool.query('SELECT data FROM tariffs WHERE object_id = $1', [req.params.id]);
@@ -169,7 +167,6 @@ app.post('/api/objects/:id/tariffs', async (req, res) => {
   }
 });
 
-// Bills
 app.get('/api/objects/:id/bills', async (req, res) => {
   try {
     const result = await pool.query('SELECT id, data FROM bills WHERE object_id = $1 ORDER BY date DESC', [req.params.id]);
@@ -245,4 +242,9 @@ if (process.env.NODE_ENV === 'production') {
   app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'dist', 'index.html')));
 }
 
-app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+// Standard listen for local dev, Vercel uses the exported app
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  app.listen(PORT, () => console.log(`Server on http://localhost:${PORT}`));
+}
+
+export default app;
