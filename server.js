@@ -5,7 +5,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const { Pool } = pg;
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -17,21 +16,26 @@ app.use(express.json());
 const connectionString = process.env.DATABASE_URL;
 
 // SSL Configuration for Aiven
-// Aiven requires the CA certificate for secure connections.
+// Handle potential newline issues in environment variables
+const caCert = process.env.DB_CA_CERT ? process.env.DB_CA_CERT.replace(/\\n/g, '\n') : undefined;
+
 const sslConfig = connectionString && connectionString.includes('sslmode=require') 
   ? {
-      rejectUnauthorized: !!process.env.DB_CA_CERT,
-      ca: process.env.DB_CA_CERT ? process.env.DB_CA_CERT : undefined
+      rejectUnauthorized: !!caCert,
+      ca: caCert
     } 
   : false;
 
 const pool = new Pool({
   connectionString,
-  ssl: sslConfig
+  ssl: sslConfig,
+  // Low timeout for health checks
+  connectionTimeoutMillis: 5000 
 });
 
 // Initialize Database Schema
 const initDb = async () => {
+  if (!connectionString) return;
   try {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
@@ -68,37 +72,41 @@ const initDb = async () => {
   }
 };
 
-// Check connection and init DB
+// Check connection and init DB immediately if not in a serverless environment
+// In Vercel, this might run multiple times, but initDb uses IF NOT EXISTS
 if (connectionString) {
-  pool.query('SELECT NOW()', (err) => {
-    if (err) {
-      console.error('CRITICAL: Database connection failed. Check your Vercel Environment Variables.');
-      console.error('Error Details:', err.message);
-    } else {
-      console.log('Successfully connected to Aiven PostgreSQL.');
-      initDb();
-    }
-  });
-} else {
-  console.warn('WARNING: DATABASE_URL is not defined in environment variables.');
+  initDb().catch(err => console.error('Early init failed:', err.message));
 }
 
 // --- API Routes ---
 
 // Health check for troubleshooting
+// This route is at /api/health (due to rewrite in vercel.json)
 app.get('/api/health', async (req, res) => {
+  const healthInfo = {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    env: {
+      has_db_url: !!process.env.DATABASE_URL,
+      has_ca_cert: !!process.env.DB_CA_CERT,
+      node_env: process.env.NODE_ENV
+    },
+    database: 'unknown'
+  };
+
   try {
+    if (!connectionString) {
+      healthInfo.database = 'missing_config';
+      return res.status(500).json(healthInfo);
+    }
+
     const dbCheck = await pool.query('SELECT 1');
-    res.json({ 
-      status: 'ok', 
-      database: 'connected',
-      env: {
-        has_db_url: !!process.env.DATABASE_URL,
-        has_ca_cert: !!process.env.DB_CA_CERT
-      }
-    });
+    healthInfo.database = 'connected';
+    res.json(healthInfo);
   } catch (err) {
-    res.status(500).json({ status: 'error', database: 'disconnected', error: err.message });
+    healthInfo.database = 'error';
+    healthInfo.error = err.message;
+    res.status(500).json(healthInfo);
   }
 });
 
@@ -258,12 +266,7 @@ app.put('/api/objects/:id/bills/update-service-name', async (req, res) => {
   }
 });
 
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'dist')));
-  app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'dist', 'index.html')));
-}
-
-// Standard listen for local dev, Vercel uses the exported app
+// For Vercel, we export the app. The server doesn't need to listen in a serverless environment.
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
   app.listen(PORT, () => console.log(`Server on http://localhost:${PORT}`));
 }
