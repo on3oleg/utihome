@@ -12,57 +12,70 @@ app.use(express.json());
 // Connection String logic
 const connectionString = process.env.DATABASE_URL;
 
-// SSL Configuration for Aiven
+// SSL Configuration for Aiven/Cloud DBs
 const caCert = process.env.DB_CA_CERT ? process.env.DB_CA_CERT.replace(/\\n/g, '\n') : undefined;
 
-const sslConfig = connectionString && connectionString.includes('sslmode=require') 
-  ? {
-      rejectUnauthorized: !!caCert,
-      ca: caCert
-    } 
-  : false;
+// If we have a connection string, we determine if SSL is needed
+// We set rejectUnauthorized to false to resolve "self-signed certificate in certificate chain" errors
+const sslConfig = connectionString && (
+  connectionString.includes('sslmode=require') || 
+  connectionString.includes('aivencloud.com') ||
+  connectionString.includes('neon.tech')
+) ? {
+  rejectUnauthorized: false, // Crucial fix for the certificate chain error
+  ca: caCert
+} : false;
 
 const pool = new Pool({
   connectionString,
   ssl: sslConfig,
-  connectionTimeoutMillis: 5000 
+  connectionTimeoutMillis: 10000, // Increased timeout for initial cold starts
+  idleTimeoutMillis: 30000
 });
 
 // Initialize Database Schema
+let isDbInitialized = false;
 const initDb = async () => {
-  if (!connectionString) return;
+  if (!connectionString || isDbInitialized) return;
   try {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
-        email TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL
-      );
-      
-      CREATE TABLE IF NOT EXISTS objects (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id),
-        name TEXT NOT NULL,
-        description TEXT
-      );
+    const client = await pool.connect();
+    try {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS users (
+          id SERIAL PRIMARY KEY,
+          email TEXT UNIQUE NOT NULL,
+          password TEXT NOT NULL
+        );
+        
+        CREATE TABLE IF NOT EXISTS objects (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER REFERENCES users(id),
+          name TEXT NOT NULL,
+          description TEXT
+        );
 
-      CREATE TABLE IF NOT EXISTS tariffs (
-        object_id INTEGER PRIMARY KEY,
-        data JSONB,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
+        CREATE TABLE IF NOT EXISTS tariffs (
+          object_id INTEGER PRIMARY KEY,
+          data JSONB,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
 
-      CREATE TABLE IF NOT EXISTS bills (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id),
-        object_id INTEGER,
-        date BIGINT,
-        total_cost NUMERIC,
-        data JSONB
-      );
-    `);
+        CREATE TABLE IF NOT EXISTS bills (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER REFERENCES users(id),
+          object_id INTEGER,
+          date BIGINT,
+          total_cost NUMERIC,
+          data JSONB
+        );
+      `);
+      isDbInitialized = true;
+    } finally {
+      client.release();
+    }
   } catch (err) {
     console.error("Schema Init Error:", err.message);
+    throw err;
   }
 };
 
@@ -85,8 +98,9 @@ app.get('/api/health', async (req, res) => {
       return res.status(500).json(healthInfo);
     }
     await initDb();
-    await pool.query('SELECT 1');
+    const result = await pool.query('SELECT NOW() as now');
     healthInfo.database = 'connected';
+    healthInfo.dbTime = result.rows[0].now;
     res.json(healthInfo);
   } catch (err) {
     healthInfo.database = 'error';

@@ -19,17 +19,17 @@ const connectionString = process.env.DATABASE_URL;
 // Handle potential newline issues in environment variables
 const caCert = process.env.DB_CA_CERT ? process.env.DB_CA_CERT.replace(/\\n/g, '\n') : undefined;
 
-const sslConfig = connectionString && connectionString.includes('sslmode=require') 
-  ? {
-      rejectUnauthorized: !!caCert,
-      ca: caCert
-    } 
-  : false;
+const sslConfig = connectionString && (
+  connectionString.includes('sslmode=require') || 
+  connectionString.includes('aivencloud.com')
+) ? {
+  rejectUnauthorized: false, // Fixes self-signed cert chain error
+  ca: caCert
+} : false;
 
 const pool = new Pool({
   connectionString,
   ssl: sslConfig,
-  // Low timeout for health checks
   connectionTimeoutMillis: 5000 
 });
 
@@ -72,16 +72,10 @@ const initDb = async () => {
   }
 };
 
-// Check connection and init DB immediately if not in a serverless environment
-// In Vercel, this might run multiple times, but initDb uses IF NOT EXISTS
 if (connectionString) {
   initDb().catch(err => console.error('Early init failed:', err.message));
 }
 
-// --- API Routes ---
-
-// Health check for troubleshooting
-// This route is at /api/health (due to rewrite in vercel.json)
 app.get('/api/health', async (req, res) => {
   const healthInfo = {
     status: 'ok',
@@ -99,7 +93,6 @@ app.get('/api/health', async (req, res) => {
       healthInfo.database = 'missing_config';
       return res.status(500).json(healthInfo);
     }
-
     const dbCheck = await pool.query('SELECT 1');
     healthInfo.database = 'connected';
     res.json(healthInfo);
@@ -266,7 +259,6 @@ app.put('/api/objects/:id/bills/update-service-name', async (req, res) => {
   }
 });
 
-// For Vercel, we export the app. The server doesn't need to listen in a serverless environment.
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
   app.listen(PORT, () => console.log(`Server on http://localhost:${PORT}`));
 }
