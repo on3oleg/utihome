@@ -17,9 +17,10 @@ app.use(express.json());
 const connectionString = process.env.DATABASE_URL;
 
 // SSL Configuration for Aiven
+// Aiven requires the CA certificate for secure connections.
 const sslConfig = connectionString && connectionString.includes('sslmode=require') 
   ? {
-      rejectUnauthorized: process.env.DB_CA_CERT ? true : false,
+      rejectUnauthorized: !!process.env.DB_CA_CERT,
       ca: process.env.DB_CA_CERT ? process.env.DB_CA_CERT : undefined
     } 
   : false;
@@ -71,15 +72,35 @@ const initDb = async () => {
 if (connectionString) {
   pool.query('SELECT NOW()', (err) => {
     if (err) {
-      console.error('Database connection error:', err.message);
+      console.error('CRITICAL: Database connection failed. Check your Vercel Environment Variables.');
+      console.error('Error Details:', err.message);
     } else {
-      console.log('Connected to PostgreSQL.');
+      console.log('Successfully connected to Aiven PostgreSQL.');
       initDb();
     }
   });
+} else {
+  console.warn('WARNING: DATABASE_URL is not defined in environment variables.');
 }
 
 // --- API Routes ---
+
+// Health check for troubleshooting
+app.get('/api/health', async (req, res) => {
+  try {
+    const dbCheck = await pool.query('SELECT 1');
+    res.json({ 
+      status: 'ok', 
+      database: 'connected',
+      env: {
+        has_db_url: !!process.env.DATABASE_URL,
+        has_ca_cert: !!process.env.DB_CA_CERT
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ status: 'error', database: 'disconnected', error: err.message });
+  }
+});
 
 app.post('/api/auth/register', async (req, res) => {
   const { email, password } = req.body;
