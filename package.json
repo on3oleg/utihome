@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "server": "node server.js",
+    "server": "node api/index.js",
     "android": "vite build && cap sync android"
   },
   "dependencies": {
