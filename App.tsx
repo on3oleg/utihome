@@ -6,14 +6,32 @@ import Settings from './components/Settings';
 import History from './components/History';
 import Auth from './components/Auth';
 import ObjectManager from './components/ObjectManager';
-import { getObjects, createObject, restoreSession, saveSession, clearSession } from './services/db';
+import { getObjects, createObject, restoreSession, saveSession, clearSession, checkHealth } from './services/db';
 import { ViewState, User, UserObject } from './types';
-import { User as UserIcon, LogOut, Globe, ChevronRight, Mail } from 'lucide-react';
+import { User as UserIcon, LogOut, Globe, ChevronRight, Mail, Database, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { LanguageProvider, useLanguage, Language } from './i18n';
 
 // Simple Profile Component
 const UserProfile: React.FC<{ user: User, onLogout: () => void }> = ({ user, onLogout }) => {
   const { setLanguage, language, t } = useLanguage();
+  const [health, setHealth] = useState<{ loading: boolean, status: string | null, error: string | null }>({
+    loading: true,
+    status: null,
+    error: null
+  });
+
+  useEffect(() => {
+    const verifyHealth = async () => {
+      const result = await checkHealth();
+      if (result.database === 'connected') {
+        setHealth({ loading: false, status: 'connected', error: null });
+      } else {
+        setHealth({ loading: false, status: 'error', error: result.error || 'Connection Failed' });
+      }
+    };
+    verifyHealth();
+  }, []);
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-8">
        
@@ -23,9 +41,22 @@ const UserProfile: React.FC<{ user: User, onLogout: () => void }> = ({ user, onL
              <UserIcon className="h-12 w-12 text-slate-800" strokeWidth={1.5} />
           </div>
           <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">{t.layout.profile}</h2>
-          <div className="flex items-center space-x-2 mt-2 bg-slate-100 px-3 py-1 rounded-full">
-            <Mail className="h-3 w-3 text-slate-500" />
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{user.email}</p>
+          
+          <div className="flex flex-col items-center space-y-2 mt-2">
+            <div className="flex items-center space-x-2 bg-slate-100 px-3 py-1 rounded-full">
+              <Mail className="h-3 w-3 text-slate-500" />
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{user.email}</p>
+            </div>
+            
+            {/* Database Health Badge */}
+            <div className={`flex items-center space-x-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+              health.loading ? 'bg-slate-50 text-slate-400 border-slate-100' : 
+              health.status === 'connected' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-red-50 text-red-600 border-red-100'
+            }`}>
+              <Database className="h-3 w-3" />
+              <span>{health.loading ? 'Checking DB...' : health.status === 'connected' ? 'Database Connected' : 'Database Offline'}</span>
+              {!health.loading && health.status === 'connected' ? <CheckCircle2 className="h-3 w-3" /> : !health.loading && <AlertCircle className="h-3 w-3" />}
+            </div>
           </div>
        </div>
 

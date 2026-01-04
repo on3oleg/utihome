@@ -10,6 +10,16 @@ const getHeaders = async () => {
   return headers;
 };
 
+// Health Check
+export const checkHealth = async (): Promise<{ status: string, database: string, error?: string }> => {
+  try {
+    const response = await fetch(`${API_URL}/health`);
+    return await response.json();
+  } catch (e: any) {
+    return { status: 'error', database: 'disconnected', error: e.message };
+  }
+};
+
 // Auth
 export const loginUser = async (email: string, password: string): Promise<User | null> => {
   try {
