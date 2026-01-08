@@ -70,7 +70,7 @@ const UserProfile: React.FC<{ user: User, onLogout: () => void }> = ({ user, onL
            <LogOut className="h-5 w-5" />
            <span>{t.layout.signOut}</span>
          </button>
-         <p className="text-center text-xs text-slate-300 mt-6 font-medium">UtiHome v1.0.2 (Local Mode)</p>
+         <p className="text-center text-xs text-slate-300 mt-6 font-medium">UtiHome v1.0.4 (Local Mode)</p>
        </div>
     </div>
   )
@@ -91,11 +91,10 @@ const UtiHomeApp: React.FC = () => {
       try {
         const savedUser = await restoreSession();
         if (savedUser) {
-          console.log("App: Restored user session", savedUser.email);
           setUser(savedUser);
         }
       } catch (e) {
-        console.error("App: Session restore error", e);
+        console.error("App: Restoration failed", e);
       } finally {
         setIsSessionLoading(false);
       }
@@ -133,7 +132,7 @@ const UtiHomeApp: React.FC = () => {
         setCurrentObject(defObj);
       }
     } catch (e) {
-      console.error("App: Failed to fetch objects", e);
+      console.error("App: Objects fetch failed", e);
     } finally {
       setLoadingObjects(false);
     }
@@ -152,13 +151,12 @@ const UtiHomeApp: React.FC = () => {
   };
 
   const handleLogin = (loggedInUser: User) => {
-    console.log("App: Logging in user", loggedInUser.email);
+    console.log("App: Logged in as", loggedInUser.email);
     setUser(loggedInUser);
     saveSession(loggedInUser);
   };
 
   const handleLogout = () => {
-    console.log("App: Logging out");
     setUser(null);
     clearSession();
     setCurrentObject(null);
@@ -167,9 +165,8 @@ const UtiHomeApp: React.FC = () => {
   };
 
   const renderContent = () => {
-    if (!user) return null;
+    if (!user || !currentObject) return null;
     if (currentView === 'profile') return <UserProfile user={user} onLogout={handleLogout} />;
-    if (!currentObject) return null;
 
     switch (currentView) {
       case 'calculator':

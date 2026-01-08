@@ -9,7 +9,7 @@ const SESSION_KEY = 'utihome_session_user_v1';
 // Configure localforage
 localforage.config({
   name: 'UtiHome',
-  storeName: 'uti_store'
+  storeName: 'uti_store_v1'
 });
 
 // Helper to get item with fallback
@@ -18,37 +18,32 @@ const getLocal = async <T>(key: string, fallback: T): Promise<T> => {
     const val = await localforage.getItem<T>(key);
     return val !== null ? val : fallback;
   } catch (e) {
-    console.error(`Error reading key ${key} from storage:`, e);
+    console.error(`DB Error: Reading ${key}`, e);
     return fallback;
   }
 };
 
-// Health Check
-export const checkHealth = async (): Promise<{ status: string, database: string }> => {
-  return { status: 'ok', database: 'connected (local)' };
-};
-
 // Auth
 export const loginUser = async (email: string, password: string): Promise<User | null> => {
-  console.log(`DB: Attempting login for ${email}`);
+  console.log(`DB: Login attempt - ${email}`);
   const users = await getLocal<User[]>(USERS_KEY, []);
   const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
   
   if (user) {
-    console.log(`DB: User found. Login successful.`);
+    console.log(`DB: Login success - Found user ID: ${user.id}`);
     return user;
   }
   
-  console.warn(`DB: User ${email} not found in local storage.`);
+  console.warn(`DB: Login failed - User ${email} not found.`);
   return null;
 };
 
 export const registerUser = async (email: string, password: string): Promise<User | null> => {
-  console.log(`DB: Registering new user ${email}`);
+  console.log(`DB: Registering - ${email}`);
   const users = await getLocal<User[]>(USERS_KEY, []);
   
   if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
-    console.warn(`DB: User ${email} already exists.`);
+    console.warn(`DB: Registration failed - User ${email} exists.`);
     return null;
   }
   
@@ -57,10 +52,10 @@ export const registerUser = async (email: string, password: string): Promise<Use
   
   try {
     await localforage.setItem(USERS_KEY, updatedUsers);
-    console.log(`DB: Registration successful for ${email}. Total users: ${updatedUsers.length}`);
+    console.log(`DB: Registration success - Created user ID: ${newUser.id}`);
     return newUser;
   } catch (e) {
-    console.error("DB: Failed to save user list to storage", e);
+    console.error("DB: Failed to save users", e);
     throw e;
   }
 };
@@ -133,18 +128,24 @@ export const subscribeToHistory = (objectId: number, callback: (bills: BillRecor
 
 // Session
 export const saveSession = async (user: User): Promise<void> => {
+  console.log(`DB: Saving session for ${user.email}`);
   await localforage.setItem(SESSION_KEY, { user, expiresAt: Date.now() + (365 * 24 * 60 * 60 * 1000) });
 };
 
 export const restoreSession = async (): Promise<User | null> => {
   const session = await localforage.getItem<{ user: User, expiresAt: number }>(SESSION_KEY);
   if (!session || Date.now() > session.expiresAt) {
-    if (session) await localforage.removeItem(SESSION_KEY);
+    if (session) {
+      console.log("DB: Session expired, clearing.");
+      await localforage.removeItem(SESSION_KEY);
+    }
     return null;
   }
+  console.log(`DB: Session restored for ${session.user.email}`);
   return session.user;
 };
 
 export const clearSession = async (): Promise<void> => {
+  console.log("DB: Clearing session.");
   await localforage.removeItem(SESSION_KEY);
 };

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { loginUser, registerUser } from '../services/db';
 import { User } from '../types';
-import { Zap, Lock, Mail, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { Zap, Lock, Mail, ArrowRight, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { IonPage, IonContent, IonSpinner } from '@ionic/react';
 import { useLanguage } from '../i18n';
 
@@ -22,7 +22,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log(`Auth: Form submitted for view ${view}`);
+    console.log(`Auth: Submitting ${view} for ${email}`);
     
     setLoading(true);
     setError(null);
@@ -30,8 +30,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 
     try {
       if (view === 'forgot-password') {
-        console.log("Auth: Simulating password reset");
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        await new Promise(resolve => setTimeout(resolve, 1000));
         setSuccessMsg(t.auth.resetSuccess);
         setLoading(false);
         return;
@@ -47,11 +46,11 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       }
       
       if (user) {
-        console.log("Auth: Success! Calling onLogin callback.");
+        console.log("Auth: Finalizing login...");
         onLogin(user);
       }
     } catch (err: any) {
-      console.error("Auth: Catching error", err);
+      console.error("Auth Error:", err);
       setError(err.message || t.auth.errors.generic);
     } finally {
       if (view !== 'forgot-password') {
@@ -67,96 +66,74 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     setPassword('');
   };
 
-  const getHeader = () => {
-    switch(view) {
-      case 'login': return t.auth.welcomeBack;
-      case 'register': return t.auth.createAccount;
-      case 'forgot-password': return t.auth.resetPasswordTitle;
-    }
-  };
-
-  const getDescription = () => {
-    switch(view) {
-      case 'login': return t.layout.subtitle;
-      case 'register': return t.layout.subtitle;
-      case 'forgot-password': return t.auth.resetDescription;
-    }
-  };
-
   return (
     <IonPage>
       <IonContent fullscreen className="ion-padding">
         <div className="min-h-full flex flex-col items-center justify-center bg-slate-50 relative overflow-hidden">
           
-          <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-200/20 rounded-full blur-3xl pointer-events-none"></div>
-          <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-200/20 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-200/20 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-200/20 rounded-full blur-3xl pointer-events-none"></div>
 
           <div className="w-full max-w-md z-10 animate-in fade-in zoom-in-95 duration-500 px-6">
             
             <div className="text-center mb-10">
-              <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-indigo-600 shadow-xl shadow-indigo-200 mb-6 transform transition-transform hover:scale-105 duration-300">
+              <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-indigo-600 shadow-xl shadow-indigo-200 mb-6">
                 <Zap className="h-8 w-8 text-white" fill="currentColor" />
               </div>
-              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{getHeader()}</h1>
-              <p className="text-slate-500 mt-2 max-w-xs mx-auto text-sm leading-relaxed">{getDescription()}</p>
+              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                {view === 'login' && t.auth.welcomeBack}
+                {view === 'register' && t.auth.createAccount}
+                {view === 'forgot-password' && t.auth.resetPasswordTitle}
+              </h1>
+              <p className="text-slate-500 mt-2 max-w-xs mx-auto text-sm font-medium">
+                {view === 'forgot-password' ? t.auth.resetDescription : t.layout.subtitle}
+              </p>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] border border-white/50 p-8">
+            <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/50 p-8">
               
               {successMsg ? (
-                <div className="text-center py-6 animate-in fade-in duration-300">
+                <div className="text-center py-4 animate-in fade-in">
                   <div className="h-12 w-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
                     <CheckCircle2 className="h-6 w-6" />
                   </div>
-                  <h3 className="text-lg font-bold text-slate-800 mb-2">{t.auth.sendResetLink}</h3>
                   <p className="text-slate-600 text-sm mb-6">{successMsg}</p>
-                  <button 
-                    onClick={() => switchView('login')}
-                    className="text-indigo-600 font-bold text-sm hover:underline"
-                  >
+                  <button onClick={() => switchView('login')} className="text-indigo-600 font-bold text-sm">
                     {t.auth.backToSignIn}
                   </button>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  <div className="group">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Mail className="h-5 w-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
-                      </div>
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                       <input 
                         type="email"
                         value={email}
                         onChange={e => setEmail(e.target.value)}
                         required
-                        className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl leading-5 bg-slate-50/50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200 sm:text-sm font-medium text-slate-900"
-                        placeholder="name@example.com"
+                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                        placeholder={t.auth.email}
                       />
                     </div>
                   </div>
 
                   {view !== 'forgot-password' && (
-                    <div className="group">
+                    <div>
                       <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Lock className="h-5 w-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
-                        </div>
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                         <input 
                           type="password"
                           value={password}
                           onChange={e => setPassword(e.target.value)}
                           required
-                          className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl leading-5 bg-slate-50/50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200 sm:text-sm font-medium text-slate-900"
-                          placeholder="••••••••"
+                          className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                          placeholder={t.auth.password}
                         />
                       </div>
                       {view === 'login' && (
-                        <div className="flex justify-end mt-2">
-                          <button 
-                            type="button"
-                            onClick={() => switchView('forgot-password')}
-                            className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 transition-colors"
-                          >
+                        <div className="flex justify-end mt-1">
+                          <button type="button" onClick={() => switchView('forgot-password')} className="text-xs font-bold text-indigo-600">
                             {t.auth.forgotPassword}
                           </button>
                         </div>
@@ -165,24 +142,23 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                   )}
 
                   {error && (
-                    <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-xs rounded-lg text-center font-medium animate-in slide-in-from-top-1">
-                      {error}
+                    <div className="flex items-center gap-2 p-3 bg-red-50 text-red-600 text-xs rounded-lg font-bold border border-red-100">
+                      <AlertCircle className="h-4 w-4 shrink-0" />
+                      <span>{error}</span>
                     </div>
                   )}
 
                   <button 
                     type="submit" 
                     disabled={loading}
-                    className="w-full h-12 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-colors flex items-center justify-center"
+                    className="w-full h-12 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg hover:bg-indigo-700 transition-colors flex items-center justify-center disabled:opacity-50"
                   >
                     {loading ? (
                       <IonSpinner name="crescent" color="light" /> 
                     ) : (
-                      <span className="flex items-center text-base">
-                        {view === 'login' && t.auth.signInAction}
-                        {view === 'register' && t.auth.signUpAction}
-                        {view === 'forgot-password' && t.auth.sendResetLink}
-                        {view !== 'forgot-password' && <ArrowRight className="ml-2 h-4 w-4" strokeWidth={3} />}
+                      <span className="flex items-center">
+                        {view === 'login' ? t.auth.signInAction : (view === 'register' ? t.auth.signUpAction : t.auth.sendResetLink)}
+                        {view !== 'forgot-password' && <ArrowRight className="ml-2 h-4 w-4" />}
                       </span>
                     )}
                   </button>
@@ -191,34 +167,20 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             </div>
 
             {!successMsg && (
-              <div className="mt-8 text-center animate-in fade-in slide-in-from-bottom-2 delay-100">
-                {view === 'login' && (
-                  <p className="text-sm text-slate-500 font-medium">
-                    {t.auth.noAccount}{" "}
-                    <button onClick={() => switchView('register')} className="text-indigo-600 font-bold hover:underline">
-                      {t.auth.signUpAction}
-                    </button>
-                  </p>
-                )}
-                
-                {view === 'register' && (
-                  <p className="text-sm text-slate-500 font-medium">
-                    {t.auth.hasAccount}{" "}
-                    <button onClick={() => switchView('login')} className="text-indigo-600 font-bold hover:underline">
-                      {t.auth.signInAction}
-                    </button>
-                  </p>
-                )}
-
+              <div className="mt-8 text-center">
+                <p className="text-sm text-slate-500 font-medium">
+                  {view === 'login' ? t.auth.noAccount : t.auth.hasAccount}{" "}
+                  <button onClick={() => switchView(view === 'login' ? 'register' : 'login')} className="text-indigo-600 font-bold">
+                    {view === 'login' ? t.auth.signUpAction : t.auth.signInAction}
+                  </button>
+                </p>
                 {view === 'forgot-password' && (
-                  <button onClick={() => switchView('login')} className="flex items-center justify-center mx-auto text-sm text-slate-500 font-bold hover:text-slate-800 transition-colors">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    {t.auth.backToSignIn}
+                  <button onClick={() => switchView('login')} className="mt-4 flex items-center justify-center mx-auto text-sm text-slate-500 font-bold">
+                    <ArrowLeft className="mr-2 h-4 w-4" /> {t.auth.backToSignIn}
                   </button>
                 )}
               </div>
             )}
-
           </div>
         </div>
       </IonContent>
