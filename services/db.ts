@@ -1,163 +1,120 @@
 import localforage from 'localforage';
 import { TariffRates, BillRecord, DEFAULT_TARIFFS, User, UserObject } from "../types";
 
-const API_URL = '/api';
+// Keys for local storage
+const USERS_KEY = 'utihome_users_v1';
+const OBJECTS_KEY = 'utihome_objects_v1';
+const SESSION_KEY = 'utihome_session_user_v1';
 
-const getHeaders = async () => {
-  const user = await restoreSession();
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (user) headers['x-user-id'] = user.id.toString();
-  return headers;
+// Helper to get item with fallback
+const getLocal = async <T>(key: string, fallback: T): Promise<T> => {
+  const val = await localforage.getItem<T>(key);
+  return val !== null ? val : fallback;
 };
 
-// Health Check
-export const checkHealth = async (): Promise<{ status: string, database: string, error?: string }> => {
-  try {
-    const response = await fetch(`${API_URL}/health`);
-    return await response.json();
-  } catch (e: any) {
-    return { status: 'error', database: 'disconnected', error: e.message };
-  }
+// Health Check (Always healthy now since it's local)
+export const checkHealth = async (): Promise<{ status: string, database: string }> => {
+  return { status: 'ok', database: 'connected (local)' };
 };
 
 // Auth
 export const loginUser = async (email: string, password: string): Promise<User | null> => {
-  try {
-    const response = await fetch(`${API_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    if (!response.ok) return null;
-    return await response.json();
-  } catch (e) { return null; }
+  const users = await getLocal<User[]>(USERS_KEY, []);
+  const user = users.find(u => u.email === email);
+  // Simple simulation: in a real local-only app, we just check if exists
+  if (user) return user;
+  return null;
 };
 
 export const registerUser = async (email: string, password: string): Promise<User | null> => {
-  try {
-    const response = await fetch(`${API_URL}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    if (!response.ok) return null;
-    return await response.json();
-  } catch (e) { return null; }
+  const users = await getLocal<User[]>(USERS_KEY, []);
+  if (users.find(u => u.email === email)) return null;
+  
+  const newUser: User = { id: Date.now(), email };
+  await localforage.setItem(USERS_KEY, [...users, newUser]);
+  return newUser;
 };
 
 // Objects
 export const getObjects = async (userId: number): Promise<UserObject[]> => {
-  try {
-    const headers = await getHeaders();
-    const response = await fetch(`${API_URL}/objects`, { headers });
-    if (response.ok) return await response.json();
-    return [];
-  } catch (e) { return []; }
+  const allObjects = await getLocal<UserObject[]>(OBJECTS_KEY, []);
+  return allObjects.filter(o => o.userId === userId);
 };
 
 export const createObject = async (userId: number, name: string, description: string): Promise<UserObject> => {
-  const headers = await getHeaders();
-  const response = await fetch(`${API_URL}/objects`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ name, description })
-  });
-  const newObj = await response.json();
+  const allObjects = await getLocal<UserObject[]>(OBJECTS_KEY, []);
+  const newObj: UserObject = { id: Date.now(), userId, name, description };
+  await localforage.setItem(OBJECTS_KEY, [...allObjects, newObj]);
   await saveTariffs(newObj.id, DEFAULT_TARIFFS);
   return newObj;
 };
 
 export const updateObject = async (id: number, name: string): Promise<void> => {
-  const headers = await getHeaders();
-  await fetch(`${API_URL}/objects/${id}`, {
-    method: 'PUT',
-    headers,
-    body: JSON.stringify({ name })
-  });
+  const allObjects = await getLocal<UserObject[]>(OBJECTS_KEY, []);
+  const updated = allObjects.map(o => o.id === id ? { ...o, name } : o);
+  await localforage.setItem(OBJECTS_KEY, updated);
 };
 
 // Data
 export const getTariffs = async (objectId: number): Promise<TariffRates | null> => {
-  try {
-    const headers = await getHeaders();
-    const response = await fetch(`${API_URL}/objects/${objectId}/tariffs`, { headers });
-    if (response.ok) return await response.json();
-    return DEFAULT_TARIFFS;
-  } catch (e) { return DEFAULT_TARIFFS; }
+  return await getLocal<TariffRates>(`tariffs_${objectId}`, DEFAULT_TARIFFS);
 };
 
 export const saveTariffs = async (objectId: number, rates: TariffRates): Promise<void> => {
-  const headers = await getHeaders();
-  await fetch(`${API_URL}/objects/${objectId}/tariffs`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(rates)
-  });
+  await localforage.setItem(`tariffs_${objectId}`, rates);
 };
 
 export const saveBill = async (objectId: number, userId: number, bill: Omit<BillRecord, 'id'>): Promise<void> => {
-  const headers = await getHeaders();
-  await fetch(`${API_URL}/objects/${objectId}/bills`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(bill)
-  });
+  const history = await getLocal<BillRecord[]>(`history_${objectId}`, []);
+  const newBill: BillRecord = { ...bill, id: Date.now().toString() };
+  await localforage.setItem(`history_${objectId}`, [newBill, ...history]);
 };
 
 export const updateBillName = async (objectId: number, billId: string, newName: string): Promise<void> => {
-  const headers = await getHeaders();
-  await fetch(`${API_URL}/bills/${billId}/name`, {
-    method: 'PUT',
-    headers,
-    body: JSON.stringify({ name: newName })
-  });
+  const history = await getLocal<BillRecord[]>(`history_${objectId}`, []);
+  const updated = history.map(b => b.id === billId ? { ...b, name: newName } : b);
+  await localforage.setItem(`history_${objectId}`, updated);
 };
 
 export const updateBillHistoryServiceName = async (objectId: number, fieldId: string, newName: string): Promise<void> => {
-  const headers = await getHeaders();
-  await fetch(`${API_URL}/objects/${objectId}/bills/update-service-name`, {
-    method: 'PUT',
-    headers,
-    body: JSON.stringify({ fieldId, newName })
+  const history = await getLocal<BillRecord[]>(`history_${objectId}`, []);
+  const updated = history.map(bill => {
+    if (!bill.customRecords) return bill;
+    return {
+      ...bill,
+      customRecords: bill.customRecords.map(rec => 
+        rec.fieldId === fieldId ? { ...rec, name: newName } : rec
+      )
+    };
   });
+  await localforage.setItem(`history_${objectId}`, updated);
 };
 
-// History polling
+// History polling simulation
 export const subscribeToHistory = (objectId: number, callback: (bills: BillRecord[]) => void) => {
-  let active = true;
-  const fetchHistory = async () => {
-    try {
-      const headers = await getHeaders();
-      const response = await fetch(`${API_URL}/objects/${objectId}/bills`, { headers });
-      if (response.ok && active) {
-        const data = await response.json();
-        callback(data);
-      }
-    } catch (e) { console.error(e); }
+  const fetch = async () => {
+    const data = await getLocal<BillRecord[]>(`history_${objectId}`, []);
+    callback(data);
   };
-  fetchHistory();
-  const interval = setInterval(fetchHistory, 5000);
-  return () => {
-    active = false;
-    clearInterval(interval);
-  };
+  fetch();
+  const interval = setInterval(fetch, 2000);
+  return () => clearInterval(interval);
 };
 
 // Session
-const SESSION_KEY = 'utihome_session_user_v1';
 export const saveSession = async (user: User): Promise<void> => {
   await localforage.setItem(SESSION_KEY, { user, expiresAt: Date.now() + (365 * 24 * 60 * 60 * 1000) });
 };
+
 export const restoreSession = async (): Promise<User | null> => {
-  try {
-    const session = await localforage.getItem<{ user: User, expiresAt: number }>(SESSION_KEY);
-    if (!session || !session.user || (session.expiresAt && Date.now() > session.expiresAt)) {
-      await localforage.removeItem(SESSION_KEY);
-      return null;
-    }
-    return session.user;
-  } catch (e) { return null; }
+  const session = await localforage.getItem<{ user: User, expiresAt: number }>(SESSION_KEY);
+  if (!session || Date.now() > session.expiresAt) {
+    await localforage.removeItem(SESSION_KEY);
+    return null;
+  }
+  return session.user;
 };
+
 export const clearSession = async (): Promise<void> => {
   await localforage.removeItem(SESSION_KEY);
 };
