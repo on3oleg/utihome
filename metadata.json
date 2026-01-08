@@ -1,7 +1,5 @@
 {
   "name": "UtiHome",
   "description": "A comprehensive utility bill tracker and calculator. Monitor electricity, water, and gas consumption, calculate costs based on custom tariffs, and visualize your spending history.",
-  "requestFramePermissions": [
-    "camera"
-  ]
+  "requestFramePermissions": []
 }

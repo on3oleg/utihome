@@ -128,13 +128,6 @@ export const translations = {
       error: "Failed to create object",
       placeholderName: "e.g. Summer House, Office",
       placeholderDesc: "..."
-    },
-    ocr: {
-      scan: "Scan Meter",
-      analyzing: "Analyzing...",
-      retake: "Retake",
-      use: "Use Value",
-      error: "Could not recognize number"
     }
   },
   uk: {
@@ -262,13 +255,6 @@ export const translations = {
       error: "Не вдалося створити об'єкт",
       placeholderName: "напр. Дача, Офіс",
       placeholderDesc: "..."
-    },
-    ocr: {
-      scan: "Сканувати",
-      analyzing: "Аналіз...",
-      retake: "Перезняти",
-      use: "Використати",
-      error: "Не вдалося розпізнати"
     }
   }
 };

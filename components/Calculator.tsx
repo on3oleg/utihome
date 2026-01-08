@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { TariffRates, ConsumptionData, CostBreakdown, DEFAULT_TARIFFS, User, UserObject, CustomBillRecord } from '../types';
 import { getTariffs, saveBill, saveTariffs } from '../services/db';
-import { Zap, Droplets, Flame, Loader2, Box } from 'lucide-react';
-import { IonList, IonItem, IonInput, IonNote, IonButton, IonSpinner, IonLabel } from '@ionic/react';
+import { Zap, Droplets, Flame, Box } from 'lucide-react';
+import { IonList, IonItem, IonInput, IonNote, IonButton, IonSpinner } from '@ionic/react';
 import { useLanguage } from '../i18n';
-import OCRScanner from './OCRScanner';
 
 interface CalculatorProps {
   user: User;
@@ -103,7 +102,6 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
 
       if (field.type === 'fee') {
         if (field.price === 0) {
-           // If configured price is 0, use manual input
            cost = safeNumber(manualFees[field.id]);
         } else {
            cost = field.price;
@@ -126,7 +124,6 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
   }, [currentReadings, customReadings, manualFees, rates]);
 
   const sanitizeInput = (val: string) => {
-    // Replace comma with dot
     return val.replace(',', '.');
   };
 
@@ -201,7 +198,6 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
           <div className="flex items-start gap-3">
             <Zap className="h-7 w-7 text-black shrink-0 mt-3" strokeWidth={1.5} />
             <div className="flex-1">
-               {/* Ionic Item styled to look like the gray box */}
                <div className="flex gap-2">
                  <IonItem className="rounded-xl overflow-hidden flex-1" style={{ '--background': '#f1f5f9', '--padding-start': '16px' }}>
                     <IonInput
@@ -214,7 +210,6 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
                     ></IonInput>
                     <IonNote slot="end" className="text-slate-500 font-medium">{t.common.units.kwh}</IonNote>
                  </IonItem>
-                 <OCRScanner onScanComplete={(val) => handleInputChange('electricity', val)} />
                </div>
                <div className="flex justify-between mt-1 px-1">
                  <span className="text-xs text-slate-400">{t.calculator.rate}: {rates.electricityRate} {t.common.currency}</span>
@@ -242,7 +237,6 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
                     ></IonInput>
                     <IonNote slot="end" className="text-slate-500 font-medium">{t.common.units.m3}</IonNote>
                  </IonItem>
-                 <OCRScanner onScanComplete={(val) => handleInputChange('water', val)} />
                </div>
                <div className="flex justify-between mt-1 px-1">
                  <span className="text-xs text-slate-400">
@@ -272,7 +266,6 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
                     ></IonInput>
                     <IonNote slot="end" className="text-slate-500 font-medium">{t.common.units.m3}</IonNote>
                  </IonItem>
-                 <OCRScanner onScanComplete={(val) => handleInputChange('gas', val)} />
                </div>
                <div className="flex justify-between mt-1 px-1">
                  <span className="text-xs text-slate-400">
@@ -303,7 +296,6 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
                         ></IonInput>
                         <IonNote slot="end" className="text-slate-500 font-medium">{field.unit}</IonNote>
                     </IonItem>
-                    <OCRScanner onScanComplete={(val) => handleCustomReadingChange(field.id, val)} />
                   </div>
                   <div className="mt-1 px-1">
                     <span className="text-xs text-slate-400">
@@ -338,7 +330,6 @@ const Calculator: React.FC<CalculatorProps> = ({ user, currentObject, onSaved })
                   </div>
                 </div>
                  <div className="text-right pt-2 min-w-[50px]">
-                   {/* No previous reading for fees */}
                 </div>
              </div>
           ))}
