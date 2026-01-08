@@ -70,7 +70,7 @@ const UserProfile: React.FC<{ user: User, onLogout: () => void }> = ({ user, onL
            <LogOut className="h-5 w-5" />
            <span>{t.layout.signOut}</span>
          </button>
-         <p className="text-center text-xs text-slate-300 mt-6 font-medium">UtiHome v1.0.1 (Local Mode)</p>
+         <p className="text-center text-xs text-slate-300 mt-6 font-medium">UtiHome v1.0.2 (Local Mode)</p>
        </div>
     </div>
   )
@@ -91,10 +91,11 @@ const UtiHomeApp: React.FC = () => {
       try {
         const savedUser = await restoreSession();
         if (savedUser) {
+          console.log("App: Restored user session", savedUser.email);
           setUser(savedUser);
         }
       } catch (e) {
-        console.error("Session restore error", e);
+        console.error("App: Session restore error", e);
       } finally {
         setIsSessionLoading(false);
       }
@@ -132,7 +133,7 @@ const UtiHomeApp: React.FC = () => {
         setCurrentObject(defObj);
       }
     } catch (e) {
-      console.error("Failed to fetch objects", e);
+      console.error("App: Failed to fetch objects", e);
     } finally {
       setLoadingObjects(false);
     }
@@ -151,11 +152,13 @@ const UtiHomeApp: React.FC = () => {
   };
 
   const handleLogin = (loggedInUser: User) => {
+    console.log("App: Logging in user", loggedInUser.email);
     setUser(loggedInUser);
     saveSession(loggedInUser);
   };
 
   const handleLogout = () => {
+    console.log("App: Logging out");
     setUser(null);
     clearSession();
     setCurrentObject(null);
@@ -180,40 +183,30 @@ const UtiHomeApp: React.FC = () => {
     }
   };
 
-  if (isSessionLoading) {
-    return (
-      <IonApp>
-        <IonLoading isOpen={true} message={t.common.loading} />
-      </IonApp>
-    );
-  }
-
-  if (!user) {
-    return (
-      <IonApp>
-        <Auth onLogin={handleLogin} />
-      </IonApp>
-    );
-  }
-
   return (
     <IonApp>
-      {loadingObjects && !currentObject ? (
-         <IonLoading isOpen={true} message={t.common.loading} />
+      {isSessionLoading ? (
+        <IonLoading isOpen={true} message={t.common.loading} />
+      ) : !user ? (
+        <Auth onLogin={handleLogin} />
       ) : (
         <>
-          <Layout 
-            user={user}
-            currentView={currentView} 
-            onChangeView={setCurrentView}
-            onLogout={handleLogout}
-            objects={objects}
-            currentObject={currentObject}
-            onObjectChange={setCurrentObject}
-            onAddObject={() => setShowObjectManager(true)}
-          >
-            {renderContent()}
-          </Layout>
+          {loadingObjects && !currentObject ? (
+            <IonLoading isOpen={true} message={t.common.loading} />
+          ) : (
+            <Layout 
+              user={user}
+              currentView={currentView} 
+              onChangeView={setCurrentView}
+              onLogout={handleLogout}
+              objects={objects}
+              currentObject={currentObject}
+              onObjectChange={setCurrentObject}
+              onAddObject={() => setShowObjectManager(true)}
+            >
+              {renderContent()}
+            </Layout>
+          )}
 
           {showObjectManager && (
             <ObjectManager 

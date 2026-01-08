@@ -6,33 +6,63 @@ const USERS_KEY = 'utihome_users_v1';
 const OBJECTS_KEY = 'utihome_objects_v1';
 const SESSION_KEY = 'utihome_session_user_v1';
 
+// Configure localforage
+localforage.config({
+  name: 'UtiHome',
+  storeName: 'uti_store'
+});
+
 // Helper to get item with fallback
 const getLocal = async <T>(key: string, fallback: T): Promise<T> => {
-  const val = await localforage.getItem<T>(key);
-  return val !== null ? val : fallback;
+  try {
+    const val = await localforage.getItem<T>(key);
+    return val !== null ? val : fallback;
+  } catch (e) {
+    console.error(`Error reading key ${key} from storage:`, e);
+    return fallback;
+  }
 };
 
-// Health Check (Always healthy now since it's local)
+// Health Check
 export const checkHealth = async (): Promise<{ status: string, database: string }> => {
   return { status: 'ok', database: 'connected (local)' };
 };
 
 // Auth
 export const loginUser = async (email: string, password: string): Promise<User | null> => {
+  console.log(`DB: Attempting login for ${email}`);
   const users = await getLocal<User[]>(USERS_KEY, []);
-  const user = users.find(u => u.email === email);
-  // Simple simulation: in a real local-only app, we just check if exists
-  if (user) return user;
+  const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  
+  if (user) {
+    console.log(`DB: User found. Login successful.`);
+    return user;
+  }
+  
+  console.warn(`DB: User ${email} not found in local storage.`);
   return null;
 };
 
 export const registerUser = async (email: string, password: string): Promise<User | null> => {
+  console.log(`DB: Registering new user ${email}`);
   const users = await getLocal<User[]>(USERS_KEY, []);
-  if (users.find(u => u.email === email)) return null;
+  
+  if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
+    console.warn(`DB: User ${email} already exists.`);
+    return null;
+  }
   
   const newUser: User = { id: Date.now(), email };
-  await localforage.setItem(USERS_KEY, [...users, newUser]);
-  return newUser;
+  const updatedUsers = [...users, newUser];
+  
+  try {
+    await localforage.setItem(USERS_KEY, updatedUsers);
+    console.log(`DB: Registration successful for ${email}. Total users: ${updatedUsers.length}`);
+    return newUser;
+  } catch (e) {
+    console.error("DB: Failed to save user list to storage", e);
+    throw e;
+  }
 };
 
 // Objects
@@ -109,7 +139,7 @@ export const saveSession = async (user: User): Promise<void> => {
 export const restoreSession = async (): Promise<User | null> => {
   const session = await localforage.getItem<{ user: User, expiresAt: number }>(SESSION_KEY);
   if (!session || Date.now() > session.expiresAt) {
-    await localforage.removeItem(SESSION_KEY);
+    if (session) await localforage.removeItem(SESSION_KEY);
     return null;
   }
   return session.user;

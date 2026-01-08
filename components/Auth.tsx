@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { loginUser, registerUser } from '../services/db';
 import { User } from '../types';
 import { Zap, Lock, Mail, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react';
-import { IonPage, IonContent, IonInput, IonButton, IonSpinner } from '@ionic/react';
+import { IonPage, IonContent, IonSpinner } from '@ionic/react';
 import { useLanguage } from '../i18n';
 
 interface AuthProps {
@@ -22,13 +22,15 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log(`Auth: Form submitted for view ${view}`);
+    
     setLoading(true);
     setError(null);
     setSuccessMsg(null);
 
     try {
       if (view === 'forgot-password') {
-        // Simulate password reset network request
+        console.log("Auth: Simulating password reset");
         await new Promise(resolve => setTimeout(resolve, 1500));
         setSuccessMsg(t.auth.resetSuccess);
         setLoading(false);
@@ -45,9 +47,11 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       }
       
       if (user) {
+        console.log("Auth: Success! Calling onLogin callback.");
         onLogin(user);
       }
     } catch (err: any) {
+      console.error("Auth: Catching error", err);
       setError(err.message || t.auth.errors.generic);
     } finally {
       if (view !== 'forgot-password') {
@@ -60,7 +64,6 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     setView(newView);
     setError(null);
     setSuccessMsg(null);
-    // Keep email if moving between screens, but clear password
     setPassword('');
   };
 
@@ -85,13 +88,11 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       <IonContent fullscreen className="ion-padding">
         <div className="min-h-full flex flex-col items-center justify-center bg-slate-50 relative overflow-hidden">
           
-          {/* Decorative Background Elements */}
           <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-200/20 rounded-full blur-3xl pointer-events-none"></div>
           <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-200/20 rounded-full blur-3xl pointer-events-none"></div>
 
           <div className="w-full max-w-md z-10 animate-in fade-in zoom-in-95 duration-500 px-6">
             
-            {/* Header / Logo */}
             <div className="text-center mb-10">
               <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-indigo-600 shadow-xl shadow-indigo-200 mb-6 transform transition-transform hover:scale-105 duration-300">
                 <Zap className="h-8 w-8 text-white" fill="currentColor" />
@@ -100,7 +101,6 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
               <p className="text-slate-500 mt-2 max-w-xs mx-auto text-sm leading-relaxed">{getDescription()}</p>
             </div>
 
-            {/* Auth Card */}
             <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] border border-white/50 p-8">
               
               {successMsg ? (
@@ -119,8 +119,6 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-5">
-                  
-                  {/* Email Input */}
                   <div className="group">
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -137,7 +135,6 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                     </div>
                   </div>
 
-                  {/* Password Input */}
                   {view !== 'forgot-password' && (
                     <div className="group">
                       <div className="relative">
@@ -167,20 +164,16 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                     </div>
                   )}
 
-                  {/* Error Message */}
                   {error && (
                     <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-xs rounded-lg text-center font-medium animate-in slide-in-from-top-1">
                       {error}
                     </div>
                   )}
 
-                  {/* Submit Button */}
-                  <IonButton 
-                    expand="block" 
+                  <button 
                     type="submit" 
                     disabled={loading}
-                    className="h-12 font-bold shadow-lg shadow-indigo-200"
-                    style={{ '--border-radius': '14px', '--background': '#4f46e5', '--color': '#ffffff' }}
+                    className="w-full h-12 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-colors flex items-center justify-center"
                   >
                     {loading ? (
                       <IonSpinner name="crescent" color="light" /> 
@@ -192,12 +185,11 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                         {view !== 'forgot-password' && <ArrowRight className="ml-2 h-4 w-4" strokeWidth={3} />}
                       </span>
                     )}
-                  </IonButton>
+                  </button>
                 </form>
               )}
             </div>
 
-            {/* Footer Links */}
             {!successMsg && (
               <div className="mt-8 text-center animate-in fade-in slide-in-from-bottom-2 delay-100">
                 {view === 'login' && (
