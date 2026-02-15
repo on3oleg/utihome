@@ -20,11 +20,15 @@ export const loginUser = async (email: string, password: string): Promise<User |
       headers: getHeaders(),
       body: JSON.stringify({ email, password })
     });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch (e) {
+    
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Login failed');
+    }
+    return data;
+  } catch (e: any) {
     console.error("API Login Error", e);
-    return null;
+    throw e;
   }
 };
 
@@ -35,11 +39,15 @@ export const registerUser = async (email: string, password: string): Promise<Use
       headers: getHeaders(),
       body: JSON.stringify({ email, password })
     });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch (e) {
+    
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Registration failed');
+    }
+    return data;
+  } catch (e: any) {
     console.error("API Register Error", e);
-    return null;
+    throw e;
   }
 };
 
@@ -49,6 +57,7 @@ export const getObjects = async (userId: number): Promise<UserObject[]> => {
     const res = await fetch(`${API_BASE}/objects`, {
       headers: getHeaders(userId)
     });
+    if (!res.ok) return [];
     return await res.json();
   } catch (e) {
     console.error("API Fetch Objects Error", e);
@@ -62,6 +71,7 @@ export const createObject = async (userId: number, name: string, description: st
     headers: getHeaders(userId),
     body: JSON.stringify({ name, description })
   });
+  if (!res.ok) throw new Error('Failed to create object');
   return await res.json();
 };
 
@@ -79,6 +89,7 @@ export const updateObject = async (id: number, name: string): Promise<void> => {
 export const getTariffs = async (objectId: number): Promise<TariffRates | null> => {
   try {
     const res = await fetch(`${API_BASE}/objects/${objectId}/tariffs`);
+    if (!res.ok) return DEFAULT_TARIFFS;
     const data = await res.json();
     return data || DEFAULT_TARIFFS;
   } catch (e) {
@@ -128,8 +139,10 @@ export const subscribeToHistory = (objectId: number, callback: (bills: BillRecor
   const fetchHistory = async () => {
     try {
       const res = await fetch(`${API_BASE}/objects/${objectId}/bills`);
-      const data = await res.json();
-      callback(data);
+      if (res.ok) {
+        const data = await res.json();
+        callback(data);
+      }
     } catch (e) {
       console.error("History fetch error", e);
     }

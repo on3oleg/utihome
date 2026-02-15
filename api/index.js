@@ -13,7 +13,10 @@ const pool = mysql.createPool({
   database: 'utihome_db',
   waitForConnections: true,
   connectionLimit: 5,
-  queueLimit: 0
+  queueLimit: 0,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 app.get('/api/health', async (req, res) => {
@@ -27,12 +30,14 @@ app.get('/api/health', async (req, res) => {
 
 app.post('/api/auth/register', async (req, res) => {
   const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
   try {
     const [result] = await pool.query('INSERT INTO users (email, password) VALUES (?, ?)', [email, password]);
-    res.json({ id: result.insertId, email });
+    res.json({ id: Number(result.insertId), email });
   } catch (err) {
+    console.error("Vercel Registration Error:", err);
     if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Email exists' });
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: `Database error: ${err.message}` });
   }
 });
 
@@ -64,7 +69,7 @@ app.post('/api/objects', async (req, res) => {
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
   try {
     const [result] = await pool.query('INSERT INTO objects (user_id, name, description) VALUES (?, ?, ?)', [userId, name, description]);
-    res.json({ id: result.insertId, userId, name, description });
+    res.json({ id: Number(result.insertId), userId: Number(userId), name, description });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

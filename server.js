@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// MySQL connection pool with provided credentials
+// MySQL connection pool with SSL for remote hosts
 const pool = mysql.createPool({
   host: 'db24.freehost.com.ua',
   user: 'utihome_user',
@@ -18,7 +18,10 @@ const pool = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0,
   enableKeepAlive: true,
-  keepAliveInitialDelay: 10000
+  keepAliveInitialDelay: 10000,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 app.get('/api/health', async (req, res) => {
@@ -26,18 +29,23 @@ app.get('/api/health', async (req, res) => {
     await pool.query('SELECT 1');
     res.json({ status: 'ok', database: 'mysql_connected' });
   } catch (err) {
+    console.error("Health check failed:", err);
     res.status(500).json({ status: 'error', error: err.message });
   }
 });
 
 app.post('/api/auth/register', async (req, res) => {
   const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+  
   try {
     const [result] = await pool.query('INSERT INTO users (email, password) VALUES (?, ?)', [email, password]);
-    res.json({ id: result.insertId, email });
+    console.log(`User registered: ${email}`);
+    res.json({ id: Number(result.insertId), email });
   } catch (err) {
-    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Email exists' });
-    res.status(500).json({ error: err.message });
+    console.error("Registration DB error:", err);
+    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Email already exists' });
+    res.status(500).json({ error: `Database error: ${err.message}` });
   }
 });
 
@@ -46,8 +54,9 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT id, email FROM users WHERE email = ? AND password = ?', [email, password]);
     if (rows.length > 0) res.json(rows[0]);
-    else res.status(401).json({ error: 'Invalid credentials' });
+    else res.status(401).json({ error: 'Invalid email or password' });
   } catch (err) {
+    console.error("Login DB error:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -69,7 +78,7 @@ app.post('/api/objects', async (req, res) => {
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
   try {
     const [result] = await pool.query('INSERT INTO objects (user_id, name, description) VALUES (?, ?, ?)', [userId, name, description]);
-    res.json({ id: result.insertId, userId, name, description });
+    res.json({ id: Number(result.insertId), userId: Number(userId), name, description });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
