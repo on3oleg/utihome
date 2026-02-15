@@ -1,4 +1,3 @@
-
 import { TariffRates, BillRecord, DEFAULT_TARIFFS, User, UserObject } from "../types";
 
 const API_BASE = '/api';
@@ -67,7 +66,8 @@ export const createObject = async (userId: number, name: string, description: st
 };
 
 export const updateObject = async (id: number, name: string): Promise<void> => {
-  const userId = JSON.parse(localStorage.getItem('utihome_user') || '{}').id;
+  const userStr = localStorage.getItem('utihome_user');
+  const userId = userStr ? JSON.parse(userStr).id : null;
   await fetch(`${API_BASE}/objects/${id}`, {
     method: 'PUT',
     headers: getHeaders(userId),
@@ -104,7 +104,8 @@ export const saveBill = async (objectId: number, userId: number, bill: Omit<Bill
 };
 
 export const updateBillName = async (objectId: number, billId: string, newName: string): Promise<void> => {
-  const userId = JSON.parse(localStorage.getItem('utihome_user') || '{}').id;
+  const userStr = localStorage.getItem('utihome_user');
+  const userId = userStr ? JSON.parse(userStr).id : null;
   await fetch(`${API_BASE}/bills/${billId}/name`, {
     method: 'PUT',
     headers: getHeaders(userId),
@@ -113,7 +114,8 @@ export const updateBillName = async (objectId: number, billId: string, newName: 
 };
 
 export const updateBillHistoryServiceName = async (objectId: number, fieldId: string, newName: string): Promise<void> => {
-  const userId = JSON.parse(localStorage.getItem('utihome_user') || '{}').id;
+  const userStr = localStorage.getItem('utihome_user');
+  const userId = userStr ? JSON.parse(userStr).id : null;
   await fetch(`${API_BASE}/objects/${objectId}/bills/update-service-name`, {
     method: 'PUT',
     headers: getHeaders(userId),
