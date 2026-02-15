@@ -183,7 +183,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
               <div className="flex items-center justify-between mb-3">
                  <div className="flex items-center space-x-2">
                     <Database className="h-4 w-4 text-slate-500" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Database Connectivity</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Redis Cloud Connectivity</span>
                  </div>
                  <div className={`flex items-center space-x-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
                    dbStatus === 'connected' ? 'bg-green-100 text-green-700' : 
@@ -193,22 +193,22 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                      dbStatus === 'connected' ? 'bg-green-500' : 
                      dbStatus === 'error' ? 'bg-red-500' : 'bg-amber-500 animate-pulse'
                    }`}></div>
-                   <span>{dbStatus === 'connected' ? 'Connected' : dbStatus === 'error' ? 'Offline' : 'Checking'}</span>
+                   <span>{dbStatus === 'connected' ? 'Online' : dbStatus === 'error' ? 'Offline' : 'Checking'}</span>
                  </div>
               </div>
               
               <div className="grid grid-cols-1 gap-2">
                 <div className="flex items-center justify-between text-[11px]">
-                   <span className="text-slate-400 font-medium">Host:</span>
-                   <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-indigo-600">35.246.136.35</code>
+                   <span className="text-slate-400 font-medium">Provider:</span>
+                   <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-indigo-600">Redis Cloud</code>
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
-                   <span className="text-slate-400 font-medium">Database:</span>
-                   <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-700">utihome</code>
+                   <span className="text-slate-400 font-medium">Endpoint:</span>
+                   <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-700 truncate max-w-[200px]">redis-12937.c14...</code>
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
-                   <span className="text-slate-400 font-medium">User:</span>
-                   <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-700">testuser</code>
+                   <span className="text-slate-400 font-medium">Region:</span>
+                   <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-700">us-east-1</code>
                 </div>
               </div>
 
@@ -216,7 +216,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 <div className="mt-3 p-2 bg-red-50 rounded-lg border border-red-100 flex items-start space-x-2">
                   <Info className="h-3 w-3 text-red-500 mt-0.5 shrink-0" />
                   <p className="text-[9px] text-red-600 leading-normal">
-                    Server unreachable or credentials invalid. Ensure the MySQL server allows remote connections from <code>%</code> (all hosts) and the <code>schema.sql</code> has been executed.
+                    Redis connection failed. Verify your <code>REDIS_URL</code> environment variable in Vercel or your local server configuration.
                   </p>
                 </div>
               )}
