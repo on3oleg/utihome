@@ -31,7 +31,7 @@ const UserProfile: React.FC<{ user: User, onLogout: () => void }> = ({ user, onL
             
             <div className="flex items-center space-x-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border bg-green-50 text-green-600 border-green-100">
               <ShieldCheck className="h-3 w-3" />
-              <span>{t.layout.loggedIn} (Local)</span>
+              <span>{t.layout.loggedIn}</span>
             </div>
           </div>
        </div>
@@ -70,7 +70,7 @@ const UserProfile: React.FC<{ user: User, onLogout: () => void }> = ({ user, onL
            <LogOut className="h-5 w-5" />
            <span>{t.layout.signOut}</span>
          </button>
-         <p className="text-center text-xs text-slate-300 mt-6 font-medium">UtiHome v1.0.4 (Local Mode)</p>
+         <p className="text-center text-xs text-slate-300 mt-6 font-medium">UtiHome</p>
        </div>
     </div>
   )
