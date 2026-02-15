@@ -148,4 +148,10 @@ app.put('/api/bills/:id/name', async (req, res) => {
   }
 });
 
+// Vercel Global Error Handler
+app.use((err, req, res, next) => {
+  console.error("Unhandled Vercel Error:", err);
+  res.status(500).json({ error: 'Internal Server Error', message: err.message });
+});
+
 export default app;

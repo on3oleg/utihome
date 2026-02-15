@@ -12,12 +12,25 @@ const getHeaders = (userId?: number) => {
   return headers;
 };
 
+// Helper for safe JSON parsing
+const safeParseJson = async (res: Response) => {
+  const text = await res.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    console.error("Failed to parse JSON response:", text);
+    throw new Error(`Server returned invalid response: ${text.substring(0, 50)}...`);
+  }
+};
+
 // Health Check
 export const checkHealth = async (): Promise<{ status: string; database: string }> => {
   try {
     const res = await fetch(`${API_BASE}/health`);
-    if (!res.ok) throw new Error('Health check failed');
-    return await res.json();
+    const data = await safeParseJson(res);
+    if (!res.ok) throw new Error(data?.error || 'Health check failed');
+    return data;
   } catch (e) {
     console.error("Health check error", e);
     throw e;
@@ -33,9 +46,9 @@ export const loginUser = async (email: string, password: string): Promise<User |
       body: JSON.stringify({ email, password })
     });
     
-    const data = await res.json();
+    const data = await safeParseJson(res);
     if (!res.ok) {
-      throw new Error(data.error || 'Login failed');
+      throw new Error(data?.error || 'Login failed');
     }
     return data;
   } catch (e: any) {
@@ -52,9 +65,9 @@ export const registerUser = async (email: string, password: string): Promise<Use
       body: JSON.stringify({ email, password })
     });
     
-    const data = await res.json();
+    const data = await safeParseJson(res);
     if (!res.ok) {
-      throw new Error(data.error || 'Registration failed');
+      throw new Error(data?.error || 'Registration failed');
     }
     return data;
   } catch (e: any) {
@@ -70,7 +83,7 @@ export const getObjects = async (userId: number): Promise<UserObject[]> => {
       headers: getHeaders(userId)
     });
     if (!res.ok) return [];
-    return await res.json();
+    return await safeParseJson(res) || [];
   } catch (e) {
     console.error("API Fetch Objects Error", e);
     return [];
@@ -83,8 +96,9 @@ export const createObject = async (userId: number, name: string, description: st
     headers: getHeaders(userId),
     body: JSON.stringify({ name, description })
   });
-  if (!res.ok) throw new Error('Failed to create object');
-  return await res.json();
+  const data = await safeParseJson(res);
+  if (!res.ok) throw new Error(data?.error || 'Failed to create object');
+  return data;
 };
 
 export const updateObject = async (id: number, name: string): Promise<void> => {
@@ -102,7 +116,7 @@ export const getTariffs = async (objectId: number): Promise<TariffRates | null> 
   try {
     const res = await fetch(`${API_BASE}/objects/${objectId}/tariffs`);
     if (!res.ok) return DEFAULT_TARIFFS;
-    const data = await res.json();
+    const data = await safeParseJson(res);
     return data || DEFAULT_TARIFFS;
   } catch (e) {
     return DEFAULT_TARIFFS;
@@ -152,8 +166,8 @@ export const subscribeToHistory = (objectId: number, callback: (bills: BillRecor
     try {
       const res = await fetch(`${API_BASE}/objects/${objectId}/bills`);
       if (res.ok) {
-        const data = await res.json();
-        callback(data);
+        const data = await safeParseJson(res);
+        if (data) callback(data);
       }
     } catch (e) {
       console.error("History fetch error", e);

@@ -157,4 +157,10 @@ app.put('/api/bills/:id/name', async (req, res) => {
   }
 });
 
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error("Unhandled Server Error:", err);
+  res.status(500).json({ error: 'Internal Server Error', message: err.message });
+});
+
 app.listen(PORT, () => console.log(`Online-First MySQL server running on port ${PORT}`));
