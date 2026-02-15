@@ -10,10 +10,10 @@ app.use(express.json());
 
 // MySQL connection pool with SSL for remote hosts
 const pool = mysql.createPool({
-  host: 'db24.freehost.com.ua',
-  user: 'utihome_user',
-  password: '1rgi1fccf',
-  database: 'utihome_db',
+  host: '35.246.136.35',
+  user: 'testuser',
+  password: 'E4gEzR&A0FDPN8,3',
+  database: 'utihome',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,

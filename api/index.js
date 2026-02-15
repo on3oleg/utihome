@@ -7,10 +7,10 @@ app.use(cors());
 app.use(express.json());
 
 const pool = mysql.createPool({
-  host: 'db24.freehost.com.ua',
-  user: 'utihome_user',
-  password: '1rgi1fccf',
-  database: 'utihome_db',
+  host: '35.246.136.35',
+  user: 'testuser',
+  password: 'E4gEzR&A0FDPN8,3',
+  database: 'utihome',
   waitForConnections: true,
   connectionLimit: 5,
   queueLimit: 0,

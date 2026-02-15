@@ -200,15 +200,15 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
               <div className="grid grid-cols-1 gap-2">
                 <div className="flex items-center justify-between text-[11px]">
                    <span className="text-slate-400 font-medium">Host:</span>
-                   <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-indigo-600">db24.freehost.com.ua</code>
+                   <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-indigo-600">35.246.136.35</code>
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
                    <span className="text-slate-400 font-medium">Database:</span>
-                   <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-700">utihome_db</code>
+                   <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-700">utihome</code>
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
                    <span className="text-slate-400 font-medium">User:</span>
-                   <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-700">utihome_user</code>
+                   <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-700">testuser</code>
                 </div>
               </div>
 
@@ -216,7 +216,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 <div className="mt-3 p-2 bg-red-50 rounded-lg border border-red-100 flex items-start space-x-2">
                   <Info className="h-3 w-3 text-red-500 mt-0.5 shrink-0" />
                   <p className="text-[9px] text-red-600 leading-normal">
-                    Server unreachable or credentials invalid. Ensure the MySQL server allows remote connections and the <code>schema.sql</code> has been executed.
+                    Server unreachable or credentials invalid. Ensure the MySQL server allows remote connections from <code>%</code> (all hosts) and the <code>schema.sql</code> has been executed.
                   </p>
                 </div>
               )}
