@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { loginUser, registerUser } from '../services/db';
+import React, { useState, useEffect } from 'react';
+import { loginUser, registerUser, checkHealth } from '../services/db';
 import { User } from '../types';
-import { Zap, Lock, Mail, ArrowRight, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Zap, Lock, Mail, ArrowRight, ArrowLeft, CheckCircle2, AlertCircle, Database, Server, Info } from 'lucide-react';
 import { IonPage, IonContent, IonSpinner } from '@ionic/react';
 import { useLanguage } from '../i18n';
 
@@ -18,12 +18,25 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [dbStatus, setDbStatus] = useState<'checking' | 'connected' | 'error'>('checking');
   const { t } = useLanguage();
+
+  useEffect(() => {
+    const verifyConnection = async () => {
+      try {
+        await checkHealth();
+        setDbStatus('connected');
+      } catch (err) {
+        setDbStatus('error');
+      }
+    };
+    verifyConnection();
+    const interval = setInterval(verifyConnection, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log(`Auth: Submitting ${view} for ${email}`);
-    
     setLoading(true);
     setError(null);
     setSuccessMsg(null);
@@ -46,7 +59,6 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       }
       
       if (user) {
-        console.log("Auth: Finalizing login...");
         onLogin(user);
       }
     } catch (err: any) {
@@ -69,14 +81,14 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   return (
     <IonPage>
       <IonContent fullscreen className="ion-padding">
-        <div className="min-h-full flex flex-col items-center justify-center bg-slate-50 relative overflow-hidden">
+        <div className="min-h-full flex flex-col items-center justify-center bg-slate-50 relative overflow-hidden py-12">
           
           <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-200/20 rounded-full blur-3xl pointer-events-none"></div>
           <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-200/20 rounded-full blur-3xl pointer-events-none"></div>
 
           <div className="w-full max-w-md z-10 animate-in fade-in zoom-in-95 duration-500 px-6">
             
-            <div className="text-center mb-10">
+            <div className="text-center mb-8">
               <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-indigo-600 shadow-xl shadow-indigo-200 mb-6">
                 <Zap className="h-8 w-8 text-white" fill="currentColor" />
               </div>
@@ -150,7 +162,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 
                   <button 
                     type="submit" 
-                    disabled={loading}
+                    disabled={loading || dbStatus === 'error'}
                     className="w-full h-12 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg hover:bg-indigo-700 transition-colors flex items-center justify-center disabled:opacity-50"
                   >
                     {loading ? (
@@ -166,8 +178,52 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
               )}
             </div>
 
+            {/* Connection Debug Panel */}
+            <div className="mt-8 bg-slate-100 rounded-2xl p-4 border border-slate-200 shadow-sm animate-in fade-in slide-in-from-top-4 duration-700">
+              <div className="flex items-center justify-between mb-3">
+                 <div className="flex items-center space-x-2">
+                    <Database className="h-4 w-4 text-slate-500" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Database Connectivity</span>
+                 </div>
+                 <div className={`flex items-center space-x-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                   dbStatus === 'connected' ? 'bg-green-100 text-green-700' : 
+                   dbStatus === 'error' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                 }`}>
+                   <div className={`h-1.5 w-1.5 rounded-full ${
+                     dbStatus === 'connected' ? 'bg-green-500' : 
+                     dbStatus === 'error' ? 'bg-red-500' : 'bg-amber-500 animate-pulse'
+                   }`}></div>
+                   <span>{dbStatus === 'connected' ? 'Connected' : dbStatus === 'error' ? 'Offline' : 'Checking'}</span>
+                 </div>
+              </div>
+              
+              <div className="grid grid-cols-1 gap-2">
+                <div className="flex items-center justify-between text-[11px]">
+                   <span className="text-slate-400 font-medium">Host:</span>
+                   <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-indigo-600">db24.freehost.com.ua</code>
+                </div>
+                <div className="flex items-center justify-between text-[11px]">
+                   <span className="text-slate-400 font-medium">Database:</span>
+                   <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-700">utihome_db</code>
+                </div>
+                <div className="flex items-center justify-between text-[11px]">
+                   <span className="text-slate-400 font-medium">User:</span>
+                   <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-700">utihome_user</code>
+                </div>
+              </div>
+
+              {dbStatus === 'error' && (
+                <div className="mt-3 p-2 bg-red-50 rounded-lg border border-red-100 flex items-start space-x-2">
+                  <Info className="h-3 w-3 text-red-500 mt-0.5 shrink-0" />
+                  <p className="text-[9px] text-red-600 leading-normal">
+                    Server unreachable or credentials invalid. Ensure the MySQL server allows remote connections and the <code>schema.sql</code> has been executed.
+                  </p>
+                </div>
+              )}
+            </div>
+
             {!successMsg && (
-              <div className="mt-8 text-center">
+              <div className="mt-6 text-center">
                 <p className="text-sm text-slate-500 font-medium">
                   {view === 'login' ? t.auth.noAccount : t.auth.hasAccount}{" "}
                   <button onClick={() => switchView(view === 'login' ? 'register' : 'login')} className="text-indigo-600 font-bold">

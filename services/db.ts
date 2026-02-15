@@ -12,6 +12,18 @@ const getHeaders = (userId?: number) => {
   return headers;
 };
 
+// Health Check
+export const checkHealth = async (): Promise<{ status: string; database: string }> => {
+  try {
+    const res = await fetch(`${API_BASE}/health`);
+    if (!res.ok) throw new Error('Health check failed');
+    return await res.json();
+  } catch (e) {
+    console.error("Health check error", e);
+    throw e;
+  }
+};
+
 // Auth
 export const loginUser = async (email: string, password: string): Promise<User | null> => {
   try {
